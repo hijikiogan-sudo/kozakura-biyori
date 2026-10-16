@@ -5,17 +5,18 @@
   <meta name="theme-color" content="#406553"><meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="コザクラ日和">
   <meta name="description" content="愛鳥との毎日を、やさしく記録。写真と飼育記録はあなたの端末に保存されます。">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
   <title>コザクラ日和 · 愛鳥と暮らす日々</title>
   <link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-192.png"><link rel="icon" href="./bird.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css">
+  <script src="./model.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
     <header class="site-header"><a href="#home" class="brand"><img src="./bird.svg" alt="" width="42" height="42"><span>コザクラ日和<small>愛鳥と暮らす日々</small></span></a><span id="connection" class="pill">端末内に保存</span></header>
     <main id="main" tabindex="-1"><p class="loading">記録をひらいています…</p></main>
-    <footer class="site-footer">あなたの愛鳥の記録は、この端末の中に。<br><span id="offline-status">オフライン準備中…</span> · v1.0.2</footer>
-    <nav class="bottom-nav" aria-label="メインメニュー"><a href="#home"><span aria-hidden="true">⌂</span>ホーム</a><a href="#records"><span aria-hidden="true">＋</span>記録</a><a href="#calendar"><span aria-hidden="true">▦</span>カレンダー</a><a href="#album"><span aria-hidden="true">▧</span>写真</a><a href="#settings"><span aria-hidden="true">⚙</span>設定</a></nav>
+    <footer class="site-footer">あなたの愛鳥の記録は、この端末の中に。<br><span id="offline-status">オフライン準備中…</span> · v1.1.0</footer>
+    <nav class="bottom-nav" aria-label="メインメニュー"><a href="#home"><span aria-hidden="true">⌂</span>ホーム</a><a href="#records"><span aria-hidden="true">＋</span>記録</a><a href="#calendar"><span aria-hidden="true">▦</span>カレンダー</a><a href="#album"><span aria-hidden="true">▧</span>アルバム</a><a href="#settings"><span aria-hidden="true">☰</span>メニュー</a></nav>
   </div>
   <dialog id="dialog"><div id="dialog-content"></div><button id="close-dialog" class="ghost wide">閉じる</button></dialog>
   <dialog id="confirm-dialog" aria-labelledby="confirm-title"><h2 id="confirm-title">内容を確認</h2><p id="confirm-message"></p><div class="row"><button id="confirm-cancel" class="ghost">キャンセル</button><button id="confirm-ok">実行する</button></div></dialog>

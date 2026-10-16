@@ -1,8 +1,8 @@
 'use strict';
 // Only this app's shell is cached. User photos/records never enter network/cache requests.
-const CACHE = 'kozakura-biyori-shell-v1.0.2';
+const CACHE = 'kozakura-biyori-shell-v1.1.0';
 const BASE = new URL('./', self.location.href);
-const SHELL = ['', 'index.html', 'style.css', 'app.js', 'bird.svg', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
+const SHELL = ['', 'index.html', 'style.css', 'app.js', 'model.js', 'art.svg', 'bird.svg', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', event => event.waitUntil((async () => {
   const cache = await caches.open(CACHE);
   await cache.addAll(SHELL.map(path => new URL(path, BASE).href));
