@@ -78,8 +78,8 @@ class BehaviorTests(unittest.TestCase):
 
     def test_reorder_saves_cancels_and_keeps_behavior_icon_identity(self):
         self.page.get_by_role('button',name='並べ替え',exact=True).click()
-        expect(self.page.get_by_role('button',name='甘えるを上へ',exact=True)).to_be_disabled()
-        for _ in range(10):
+        expect(self.page.get_by_role('button',name='ご飯を食べるを上へ',exact=True)).to_be_disabled()
+        for _ in range(1):
             self.page.get_by_role('button',name='水を飲むを上へ',exact=True).click()
         self.page.get_by_role('button',name='順番を保存',exact=True).click()
         expect(self.page.locator('.behavior-tile').first).to_have_attribute('aria-label','水を飲むを記録')
@@ -96,7 +96,7 @@ class BehaviorTests(unittest.TestCase):
         self.page.get_by_role('button',name='並べ替え',exact=True).click()
         self.page.get_by_role('button',name='元の順番に戻す',exact=True).click()
         self.page.get_by_role('button',name='順番を保存',exact=True).click()
-        expect(self.page.locator('.behavior-tile').first).to_have_attribute('aria-label','甘えるを記録')
+        expect(self.page.locator('.behavior-tile').first).to_have_attribute('aria-label','ご飯を食べるを記録')
         self.assertEqual(self.page.evaluate('(async()=> (await readState()).records.length)()'),1)
 
     def test_bird_selection_persists_offline_and_in_exported_backup(self):
@@ -128,15 +128,15 @@ class BehaviorTests(unittest.TestCase):
         expect(self.page.locator('#main .cover-bird')).to_have_attribute('src','./birds/button-blue.svg')
         self.page.wait_for_function('document.querySelector("#main .cover-bird").naturalWidth>0')
         self.page.goto(self.base+'#behavior')
-        expect(self.page.locator('.behavior-tile').first.locator('use')).to_have_attribute('href','./art.svg#button-blue-pose-0')
+        expect(self.page.locator('.behavior-tile').first.locator('use')).to_have_attribute('href','./art.svg#button-blue-pose-9')
 
     def test_new_name_keeps_storage_and_install_identity(self):
-        self.assertTrue(self.page.title().startswith('こざボタびより'))
-        expect(self.page.locator('.brand')).to_contain_text('こざボタびより')
+        self.assertTrue(self.page.title().startswith('コザボタ日和'))
+        expect(self.page.locator('.brand')).to_contain_text('コザボタ日和')
         self.assertEqual(self.page.evaluate('DB'),'kozakura-biyori-local-v1')
         self.assertEqual(self.page.evaluate('APP'),'kozakura-biyori')
         manifest=self.context.request.get(self.base+'manifest.webmanifest').json()
-        self.assertEqual(manifest['name'],'こざボタびより')
+        self.assertEqual(manifest['name'],'コザボタ日和')
         self.assertEqual(manifest['id'],'./')
         self.assertEqual(manifest['scope'],'./')
 

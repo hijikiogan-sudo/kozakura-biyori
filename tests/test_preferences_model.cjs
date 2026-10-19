@@ -6,7 +6,7 @@ test('old state and old v1/v2 backups get complete behavior order and the origin
   const old=M.blank();delete old.settings.behaviorOrder;delete old.settings.birdAppearance;
   for(const version of [1,2]){
     const restored=M.validateBackup({app:'kozakura-biyori',version,data:old});
-    assert.deepEqual(restored.settings.behaviorOrder,M.BEHAVIORS);
+    assert.deepEqual(restored.settings.behaviorOrder,M.DEFAULT_BEHAVIOR_ORDER);
     assert.equal(restored.settings.birdAppearance,'lovebird-green');
   }
 });
@@ -15,7 +15,7 @@ test('an older partial order appends new actions without duplicate or missing ti
   const order=[...M.BEHAVIORS.slice(0,9)].reverse();
   const state=M.blank();state.settings.behaviorOrder=order;
   const normalized=M.normalize(state);
-  assert.deepEqual(normalized.settings.behaviorOrder,[...order,...M.BEHAVIORS.slice(9)]);
+  assert.deepEqual(normalized.settings.behaviorOrder,[...order,...M.DEFAULT_BEHAVIOR_ORDER.filter(name=>!order.includes(name))]);
   assert.equal(new Set(M.behaviorOrder(['水を飲む','水を飲む','unknown'])).size,12);
 });
 
@@ -35,4 +35,13 @@ test('invalid appearance and ambiguous orders are rejected by backup import',()=
     const state=M.blank();Object.assign(state.settings,changes);
     assert.throws(()=>M.validateBackup({app:'kozakura-biyori',version:2,data:state}));
   }
+});
+
+test('legacy untouched order migrates once, while custom and newly saved orders remain',()=>{
+  const old=M.blank();delete old.settings.behaviorOrderVersion;old.settings.behaviorOrder=[...M.BEHAVIORS];
+  assert.deepEqual(M.normalize(old).settings.behaviorOrder,M.DEFAULT_BEHAVIOR_ORDER);
+  old.settings.behaviorOrder=[...M.BEHAVIORS].reverse();
+  assert.deepEqual(M.normalize(old).settings.behaviorOrder,old.settings.behaviorOrder);
+  old.settings.behaviorOrder=[...M.BEHAVIORS];old.settings.behaviorOrderVersion=2;
+  assert.deepEqual(M.normalize(old).settings.behaviorOrder,M.BEHAVIORS);
 });
