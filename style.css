@@ -15,3 +15,5 @@
 .cover-preview{touch-action:none;cursor:grab}.cover-preview:active{cursor:grabbing}
 
 .cover-preview .cover-bird{position:absolute;inset:0}
+
+.behavior-tile strong{white-space:normal;min-height:33px;line-height:1.5;display:flex;flex-direction:column;justify-content:center;overflow-wrap:anywhere;padding:0 3px}.behavior-9{background:#faf0d9}.behavior-10{background:#e8f1f4}.behavior-11{background:#edf1e3}.behavior-10 .mood-mark{color:#8db9c3}.behavior-11 .mood-mark{color:#d99494}

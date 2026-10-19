@@ -2,7 +2,7 @@
 // Pure data rules. Existing v1 records and the database name remain compatible.
 const KozakuraModel = (() => {
   const TYPES = {health:['leaf','健康'],weight:['scale','体重'],flight:['bird','放鳥'],egg:['egg','産卵'],behavior:['heart','行動'],clean:['broom','掃除'],water:['drop','水替え'],food:['bowl','ご飯替え'],visit:['medical','通院'],estrus:['heart','発情'],note:['note','メモ']};
-  const BEHAVIORS = ['甘える','噛む','鳴く','紙ちぎり','羽づくろい','水浴び','よく遊ぶ','落ち着かない','よく寝ている'];
+  const BEHAVIORS = ['甘える','噛む','鳴く','紙ちぎり','羽づくろい','水浴び','よく遊ぶ','落ち着かない','よく寝ている','ご飯を食べる','水を飲む','くちばしギョリギョリ'];
   const LEVEL = ['いつもどおり','少なめ','多め','気になる'];
   const CARE = ['clean','water','food'];
   function date(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
