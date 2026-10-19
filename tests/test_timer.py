@@ -1,5 +1,6 @@
 """Browser regression checks. Run: python3 -m unittest discover -s tests -v"""
 import functools
+from datetime import datetime, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import shutil
@@ -131,6 +132,51 @@ class TimerTests(unittest.TestCase):
         self.page.locator('#confirm-ok').click()
         expect(self.page.get_by_role('button', name='放鳥をはじめる', exact=True)).to_be_visible()
         self.assertEqual(self.records()[0]['minutes'], 30)
+
+    def test_calendar_export_keeps_original_deadline_and_disables_after_expiry(self):
+        self.page.get_by_role('button', name='カウントダウン', exact=True).click()
+        self.page.get_by_role('button', name='30分', exact=True).click()
+        self.start()
+        timer=self.page.evaluate('state.timer')
+        self.page.clock.fast_forward(300000)
+        self.page.reload()
+        button=self.page.get_by_role('button',name='終了のお知らせ用ファイルを書き出す',exact=True)
+        with self.page.expect_download() as event:
+            button.click()
+        content=Path(event.value.path()).read_bytes().decode().replace('\r\n ','')
+        expected=datetime.fromtimestamp((timer['startedAt']+timer['durationSeconds']*1000)/1000,timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+        self.assertIn('DTSTART:'+expected+'\r\n',content)
+        self.assertIn('TRIGGER:PT0S',content)
+        self.assertNotIn('RRULE:',content)
+        expect(self.page.locator('#toast')).to_contain_text('カレンダーへ追加')
+        self.page.clock.fast_forward(1500000)
+        expect(button).to_be_disabled()
+
+    def test_completion_sound_and_notice_work_on_other_app_routes_once(self):
+        self.page.get_by_role('button',name='カウントダウン',exact=True).click()
+        self.start()
+        expect(self.page.locator('#timer-audio-status')).to_contain_text('準備できました')
+        self.page.evaluate("() => {window.__tones=0;const createTone=timerAudioContext.createOscillator.bind(timerAudioContext);timerAudioContext.createOscillator=()=>{window.__tones++;return createTone();};}")
+        self.assertEqual(self.page.evaluate('window.__tones'),0)
+        self.page.goto(self.base+'#home')
+        self.page.clock.fast_forward(900000)
+        expect(self.page.locator('#toast')).to_have_text('放鳥の設定時間になりました。愛鳥を確認してください。')
+        self.assertEqual(self.page.evaluate('window.__tones'),3)
+        self.page.clock.fast_forward(5000)
+        self.assertEqual(self.page.evaluate('window.__tones'),3)
+        self.assertEqual(self.records(),[])
+
+    def test_audio_failure_does_not_block_timer_and_test_button_can_reenable_sound(self):
+        self.page.get_by_role('button',name='カウントダウン',exact=True).click()
+        self.page.evaluate('window.AudioContext=undefined;window.webkitAudioContext=undefined;')
+        self.start()
+        self.page.get_by_role('button',name='終了音を試す',exact=True).click()
+        expect(self.page.locator('#toast')).to_contain_text('音を再生できません')
+        self.assertIsNotNone(self.page.evaluate('state.timer'))
+        self.page.reload()
+        self.page.get_by_role('button',name='終了音を試す',exact=True).click()
+        expect(self.page.locator('#timer-audio-status')).to_contain_text('準備できました')
+        expect(self.page.locator('#toast')).to_contain_text('終了音を鳴らしました')
 
 
 if __name__ == '__main__':
