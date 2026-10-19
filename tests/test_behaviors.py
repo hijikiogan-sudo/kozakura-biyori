@@ -125,7 +125,7 @@ class BehaviorTests(unittest.TestCase):
         self.context.set_offline(True)
         self.page.reload()
         self.page.goto(self.base+'#home')
-        expect(self.page.locator('#main .cover-bird')).to_have_attribute('src','./birds/button-blue.svg')
+        expect(self.page.locator('#main .cover-bird')).to_have_attribute('src','./covers/button-blue.svg')
         self.page.wait_for_function('document.querySelector("#main .cover-bird").naturalWidth>0')
         self.page.goto(self.base+'#behavior')
         expect(self.page.locator('.behavior-tile').first.locator(':scope > svg use')).to_have_attribute('href','./art.svg#button-blue-pose-9')

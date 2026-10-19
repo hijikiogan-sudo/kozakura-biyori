@@ -95,14 +95,16 @@ symbols.append('<!-- bird-variants:start -->')
 for b in catalog:
     for n in range(12): symbols.append(f'<symbol id="{b["id"]}-pose-{n}" viewBox="0 0 120 110">'+bird(b,n)+'</symbol>')
     # Generous space around the single bird for cover framing and timer display.
-    scene='<rect width="400" height="340" rx="32" fill="#edf3e2"/>'+circle(336,55,25,'#f5dfa3')
+    scene='<rect width="400" height="340" rx="32" fill="#edf3e2"/>'
     scene+=line('M28 289q165-16 340 0','#9eae83',11)
     scene+=path('M48 286q-34-3-37-27 28-5 37 27M350 287q8-32 37-27-4 27-37 27','#a6bc91')
     # Strip action props from the cover; its crop remains a profile preference.
     neutral=bird(b, with_prop=False)
-    scene+='<g transform="translate(52 30) scale(2.45)">'+neutral+'</g>'
+    scene+='<g transform="translate(28 30) scale(2.45)">'+neutral+'</g>'
     image='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 340">'+scene+'</svg>'
     (ROOT/'birds'/f'{b["id"]}.svg').write_text(image)
+    (ROOT/'covers').mkdir(exist_ok=True)
+    (ROOT/'covers'/f'{b["id"]}.svg').write_text(image)
     if b['id']=='lovebird-green': (ROOT/'bird.svg').write_text(image)
 symbols.append('<!-- bird-variants:end -->')
 (ROOT/'art.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg">'+''.join(symbols)+'</svg>')
