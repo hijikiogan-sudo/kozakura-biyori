@@ -6,3 +6,12 @@
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,transform .15s ease}button:active{transform:scale(.98)}}
 
 .timer-presets{display:flex;gap:8px;margin:10px 0}.timer-presets button{flex:1}.timer-scene.finished .timer-ring{border-top-color:#df8e8f;border-right-color:#df8e8f}.timer-scene.finished .timer-status{color:#b36c70;font-size:16px;letter-spacing:0}#timer-complete[hidden]{display:none}
+
+/* Homepage photo customization; image transforms never affect the overlays. */
+.photo-hero.cover-wide{height:220px;border-radius:24px}.photo-hero.cover-portrait{height:380px;border-radius:28px}.photo-hero .cover-comment{display:block;font-size:12px;color:#65785c;white-space:pre-wrap;overflow-wrap:anywhere}.speech:has(.cover-comment){width:100px;max-width:36%;min-height:88px;border-radius:28px 28px 28px 5px;padding:12px 10px 8px;transform:none;}.profile-wave h2{font-size:18px;margin:0 0 3px;overflow-wrap:anywhere}.cover-preview{margin:10px 0 16px}.cover-layout,.cover-adjustments{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:16px 0;min-width:0}.cover-layout legend,.cover-adjustments legend{font-size:13px;font-weight:600}.cover-layout label{display:flex;align-items:center;gap:8px;margin:6px 0;padding:7px 0;min-height:44px;font-weight:400}.cover-layout input[type=radio]{width:20px;height:20px;accent-color:#88a77b;margin:0;flex-shrink:0}.cover-slider{display:grid;grid-template-columns:1fr auto;align-items:end;gap:8px}.cover-slider>div{min-width:0}.cover-slider output{font-size:12px;padding-bottom:14px;color:var(--muted)}.cover-slider input[type=range]{padding:0;min-height:44px;accent-color:#88a77b}.cover-slider label{margin-top:6px}
+
+.photo-hero.has-long-comment .speech{top:12px;width:128px;max-width:50%;padding:8px}.photo-hero.has-long-comment .cover-comment{font-size:11px;line-height:1.5}.photo-hero.cover-wide .profile-wave{left:0;min-height:72px;padding:10px 14px;border-radius:0;align-items:center}
+
+.cover-preview{touch-action:none;cursor:grab}.cover-preview:active{cursor:grabbing}
+
+.cover-preview .cover-bird{position:absolute;inset:0}
