@@ -1,5 +1,6 @@
 """Behavior records and legacy backups remain compatible as choices expand."""
 import functools
+import json
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 import shutil
@@ -43,7 +44,7 @@ class BehaviorTests(unittest.TestCase):
         expect(self.page.locator('.behavior-tile')).to_have_count(12)
         for name in names:
             self.page.get_by_role('button',name=f'{name}を記録',exact=True).click()
-            expect(self.page.locator('#toast')).to_have_text('記録しました')
+            expect(self.page.locator('.record-list')).to_contain_text(name)
         self.page.reload()
         expect(self.page.locator('.record-list')).to_contain_text('くちばしギョリギョリ')
         records=self.page.evaluate('(async()=> (await readState()).records)()')
@@ -74,6 +75,70 @@ class BehaviorTests(unittest.TestCase):
         ids=[el.attrib.get('id') for el in tree.iter() if el.attrib.get('id','').startswith('pose-')]
         self.assertEqual(len(ids),len(set(ids)))
         self.assertTrue(all(f'pose-{i}' in ids for i in range(12)))
+
+    def test_reorder_saves_cancels_and_keeps_behavior_icon_identity(self):
+        self.page.get_by_role('button',name='並べ替え',exact=True).click()
+        expect(self.page.get_by_role('button',name='甘えるを上へ',exact=True)).to_be_disabled()
+        for _ in range(10):
+            self.page.get_by_role('button',name='水を飲むを上へ',exact=True).click()
+        self.page.get_by_role('button',name='順番を保存',exact=True).click()
+        expect(self.page.locator('.behavior-tile').first).to_have_attribute('aria-label','水を飲むを記録')
+        expect(self.page.locator('.behavior-tile').first.locator('use')).to_have_attribute('href','./art.svg#lovebird-green-pose-10')
+        self.page.locator('.behavior-tile').first.click()
+        expect(self.page.locator('#toast')).to_have_text('記録しました')
+        self.assertEqual(self.page.evaluate('(async()=> (await readState()).records[0].behavior)()'),'水を飲む')
+        self.page.reload()
+        expect(self.page.locator('.behavior-tile').first).to_have_attribute('aria-label','水を飲むを記録')
+        self.page.get_by_role('button',name='並べ替え',exact=True).click()
+        self.page.get_by_role('button',name='水を飲むを下へ',exact=True).click()
+        self.page.get_by_role('button',name='変更を取り消す',exact=True).click()
+        expect(self.page.locator('.behavior-tile').first).to_have_attribute('aria-label','水を飲むを記録')
+        self.page.get_by_role('button',name='並べ替え',exact=True).click()
+        self.page.get_by_role('button',name='元の順番に戻す',exact=True).click()
+        self.page.get_by_role('button',name='順番を保存',exact=True).click()
+        expect(self.page.locator('.behavior-tile').first).to_have_attribute('aria-label','甘えるを記録')
+        self.assertEqual(self.page.evaluate('(async()=> (await readState()).records.length)()'),1)
+
+    def test_bird_selection_persists_offline_and_in_exported_backup(self):
+        self.page.get_by_role('button',name='インコのイラストを選ぶ',exact=True).click()
+        expect(self.page.locator('input[name=bird-appearance]')).to_have_count(12)
+        self.page.get_by_role('radio',name='ボタンインコ・ブルー',exact=True).check()
+        expect(self.page.locator('.appearance-preview use')).to_have_attribute('href','./art.svg#button-blue-pose-0')
+        self.assertEqual(self.page.evaluate('state.settings.birdAppearance'),'lovebird-green')
+        self.page.get_by_role('button',name='イラストを保存',exact=True).click()
+        expect(self.page.locator('#toast')).to_have_text('インコのイラストを保存しました')
+        expect(self.page.locator('.brand use')).to_have_attribute('href','./art.svg#button-blue-pose-0')
+        self.page.goto(self.base+'#backup')
+        with self.page.expect_download() as event:
+            self.page.get_by_role('button',name='バックアップを書き出す',exact=True).click()
+        data=json.loads(Path(event.value.path()).read_text())
+        self.assertEqual(data['app'],'kozakura-biyori')
+        self.assertEqual(data['data']['settings']['birdAppearance'],'button-blue')
+        self.assertEqual(len(data['data']['settings']['behaviorOrder']),12)
+        self.page.evaluate("(async()=>{await mutate(s=>s.settings.birdAppearance='lovebird-yellow');render();})()")
+        self.page.locator('input[name=backup]').set_input_files({'name':'backup.json','mimeType':'application/json','buffer':json.dumps(data,ensure_ascii=False).encode()})
+        self.page.locator('#confirm-ok').click()
+        expect(self.page.locator('#toast')).to_have_text('バックアップを復元しました')
+        self.assertEqual(self.page.evaluate('state.settings.birdAppearance'),'button-blue')
+        expect(self.page.locator('#offline-status')).to_have_text('オフライン準備完了',timeout=30000)
+        self.page.wait_for_function('navigator.serviceWorker.controller !== null')
+        self.context.set_offline(True)
+        self.page.reload()
+        self.page.goto(self.base+'#home')
+        expect(self.page.locator('#main .cover-bird')).to_have_attribute('src','./birds/button-blue.svg')
+        self.page.wait_for_function('document.querySelector("#main .cover-bird").naturalWidth>0')
+        self.page.goto(self.base+'#behavior')
+        expect(self.page.locator('.behavior-tile').first.locator('use')).to_have_attribute('href','./art.svg#button-blue-pose-0')
+
+    def test_new_name_keeps_storage_and_install_identity(self):
+        self.assertTrue(self.page.title().startswith('こざボタびより'))
+        expect(self.page.locator('.brand')).to_contain_text('こざボタびより')
+        self.assertEqual(self.page.evaluate('DB'),'kozakura-biyori-local-v1')
+        self.assertEqual(self.page.evaluate('APP'),'kozakura-biyori')
+        manifest=self.context.request.get(self.base+'manifest.webmanifest').json()
+        self.assertEqual(manifest['name'],'こざボタびより')
+        self.assertEqual(manifest['id'],'./')
+        self.assertEqual(manifest['scope'],'./')
 
 
 if __name__=='__main__':
