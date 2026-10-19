@@ -83,7 +83,7 @@ class BehaviorTests(unittest.TestCase):
             self.page.get_by_role('button',name='水を飲むを上へ',exact=True).click()
         self.page.get_by_role('button',name='順番を保存',exact=True).click()
         expect(self.page.locator('.behavior-tile').first).to_have_attribute('aria-label','水を飲むを記録')
-        expect(self.page.locator('.behavior-tile').first.locator('use')).to_have_attribute('href','./art.svg#lovebird-green-pose-10')
+        expect(self.page.locator('.behavior-tile').first.locator(':scope > svg use')).to_have_attribute('href','./art.svg#lovebird-green-pose-10')
         self.page.locator('.behavior-tile').first.click()
         expect(self.page.locator('#toast')).to_have_text('記録しました')
         self.assertEqual(self.page.evaluate('(async()=> (await readState()).records[0].behavior)()'),'水を飲む')
@@ -128,7 +128,7 @@ class BehaviorTests(unittest.TestCase):
         expect(self.page.locator('#main .cover-bird')).to_have_attribute('src','./birds/button-blue.svg')
         self.page.wait_for_function('document.querySelector("#main .cover-bird").naturalWidth>0')
         self.page.goto(self.base+'#behavior')
-        expect(self.page.locator('.behavior-tile').first.locator('use')).to_have_attribute('href','./art.svg#button-blue-pose-9')
+        expect(self.page.locator('.behavior-tile').first.locator(':scope > svg use')).to_have_attribute('href','./art.svg#button-blue-pose-9')
 
     def test_new_name_keeps_storage_and_install_identity(self):
         self.assertTrue(self.page.title().startswith('コザボタ日和'))

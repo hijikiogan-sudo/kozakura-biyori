@@ -23,3 +23,19 @@
 .chewed-preview{display:block;width:100%;max-height:240px;object-fit:contain;background:#f1f0e5;border-radius:14px;margin:12px 0}.chewed-preview[hidden]{display:none}.photo-card figcaption strong{display:block;overflow-wrap:anywhere;font-size:12px}.photo-card figcaption small{display:block;margin-top:3px}
 
 .home-appearance{margin-bottom:6px}.home-appearance .home-date{margin:0 2px}.home-appearance .text-button{min-height:44px}
+
+/* Shared rounded illustration palette: sage foliage, peach faces, blue water. */
+:root{--green:#7f9e76;--deep:#4c6d50;--muted:#737f69;--cream:#fcfcf2;--line:#e1e7d6;--pink:#e5ad99;--shadow:0 4px 18px #6e875409;background:#f4f6e9;color:#3e5144}
+.app-shell{background:#fafbf2}.card{background:#fffef7;border-color:var(--line);box-shadow:var(--shadow);border-radius:24px}
+button{border-radius:16px}button.primary,.tabs button.active{background:#7f9e76;box-shadow:none}button.ghost{background:#eaf0df;color:#4c6d50}
+.flight-start{background:#c7d9b3;color:#3e5846;border-color:#bbcfaa;box-shadow:none}
+.photo-hero{border-radius:30px;background:#edf3e2}.speech{background:#fffef5;box-shadow:none;transform:none}.speech .icon{width:22px;height:22px}.profile-wave{background:#fffef7f5}
+.action-tile{background:#fffef7;border-color:var(--line);border-radius:20px;box-shadow:none}.tile-icon,.care-symbol{border-radius:50%;background:#edf2e2}
+.health-cell,.care-check{background:#f5f7eb;border-color:var(--line);box-shadow:none;border-radius:17px}
+.tabs{background:#eaf0df;border-radius:16px}.tabs button{border-radius:12px}.bottom-nav{background:#fcfdf3f5;border-color:var(--line)}.bottom-nav a[aria-current="page"]{background:#e6efdb;color:#426346}.bottom-nav a{color:#617356}
+.behavior-tile{background:#edf3e3;border-color:#e0e8d5;border-radius:24px;padding-top:12px}.behavior-0,.behavior-1,.behavior-2{background:#f8ede3}.behavior-5,.behavior-10{background:#e6f1f1}.behavior-9{background:#f9f0d9}
+.behavior-tile>.icon{width:94px;height:84px}.behavior-tile .mood-mark .icon{width:18px;height:18px;margin:9px 0 4px}.mood-mark{display:flex;align-items:center;justify-content:center}
+.appearance-preview{background:#edf3e2;border-radius:28px}.appearance-group{border-color:var(--line);border-radius:24px}.bird-choice{background:#f3f6e9;border-radius:18px}.bird-choice:has(input:checked){background:#e3edd8;border-color:#7f9e76}
+input,select,textarea{border-color:#dce4d0}dialog{background:#fcfcf2;border-radius:25px}.date-calendar{background:#eaf0df}.notice{background:#f0f3e5;border-color:var(--line)}.empty-symbol .icon{width:38px;height:38px}
+.favorite-button .icon{width:22px;height:22px;opacity:.65}.favorite-button.active .icon{opacity:1;filter:saturate(1.6)}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}

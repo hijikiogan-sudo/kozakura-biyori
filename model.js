@@ -10,11 +10,11 @@ const KozakuraModel = (() => {
     "species": "lovebird",
     "label": "コザクラインコ",
     "color": "グリーン",
-    "body": "#9ab77c",
-    "wing": "#7e9d68",
-    "tail": "#79a57a",
-    "face": "#efb590",
-    "beak": "#ce7b5d",
+    "body": "#8eb990",
+    "wing": "#6d9e77",
+    "tail": "#78a781",
+    "face": "#f2cfb4",
+    "beak": "#cf815f",
     "collar": "#e8cf77"
   },
   {
