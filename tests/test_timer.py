@@ -99,28 +99,38 @@ class TimerTests(unittest.TestCase):
         self.page.clock.fast_forward(60000)
         expect(self.page.locator('#active-timer-detail')).to_contain_text('00:16:00')
 
-    def test_bird_actions_cycle_without_changing_timer(self):
+    def test_bird_actions_follow_elapsed_time_and_restore(self):
         self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
         self.start()
         self.page.evaluate("location.hash='home'")
         expect(self.page.locator('.bird-action')).to_have_count(9)
         actions = ['fly', 'perch', 'preen', 'curious', 'stretch', 'puff', 'hop', 'sleep', 'paper']
-        for index, name in enumerate(actions):
-            milliseconds = index*8000+4000
-            self.page.evaluate("""(milliseconds)=>{
-                document.querySelector('.active-timer-bird').getAnimations({subtree:true}).forEach(a=>{a.pause();a.currentTime=milliseconds;});
-            }""", milliseconds)
-            expect(self.page.locator('.bird-action-'+name)).to_have_css('opacity', '1')
+        started = self.page.evaluate("new Intl.DateTimeFormat('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(state.timer.startedAt))")
+        expect(self.page.locator('#active-timer-start')).to_have_text('開始 '+started)
+        self.page.clock.run_for(29000)
+        expect(self.page.locator('.bird-action-fly')).to_be_visible()
+        self.page.clock.run_for(2000)
+        expect(self.page.locator('.bird-action-perch')).to_be_visible()
+        for index, name in enumerate(actions[1:], start=1):
+            if index>1:
+                self.page.clock.run_for(30000)
+            expect(self.page.locator('.active-timer-bird')).to_have_attribute('data-action', name)
+            expect(self.page.locator('.bird-action-'+name)).to_be_visible()
             for other in set(actions)-{name}:
-                expect(self.page.locator('.bird-action-'+other)).to_have_css('opacity', '0')
-            self.page.locator('#active-timer').screenshot(path='/tmp/timer-bird-'+name+'.png')
-        expect(self.page.locator('#active-timer-value')).to_have_text('00:00:00')
+                expect(self.page.locator('.bird-action-'+other)).to_be_hidden()
+        self.page.reload()
+        expect(self.page.locator('.bird-action-paper')).to_be_visible()
+        expect(self.page.locator('#active-timer-start')).to_have_text('開始 '+started)
         self.assertEqual(self.records(), [])
         self.page.emulate_media(reduced_motion='reduce')
-        expect(self.page.locator('.bird-action-perch')).to_have_css('opacity', '1')
-        for selector in ['.bird-action', '.bird-gesture', '.flight-bob', '.flight-wing']:
+        expect(self.page.locator('.bird-action-paper')).to_be_visible()
+        for selector in ['.bird-gesture', '.flight-bob', '.flight-wing']:
             for node in self.page.locator(selector).all():
                 expect(node).to_have_css('animation-name', 'none')
+        self.page.clock.run_for(30000)
+        expect(self.page.locator('.bird-action-fly')).to_be_visible()
+        self.page.locator('#active-timer').click()
+        expect(self.page.locator('#timer-display')).to_have_text('00:04:31')
 
     def test_countup_and_reload(self):
         self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))

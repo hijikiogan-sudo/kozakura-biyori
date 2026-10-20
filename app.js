@@ -201,10 +201,21 @@ function updateActiveTimer(){
         el('span',{class:'active-timer-heading'},'放鳥は計測中'),
         el('span',{class:'active-timer-reading'},el('span',{id:'active-timer-label',class:'active-timer-label'}),el('strong',{id:'active-timer-value',class:'active-timer-value'})),
         el('span',{id:'active-timer-detail',class:'active-timer-detail'}),
+        el('span',{id:'active-timer-start',class:'active-timer-start'}),
         el('span',{class:'active-timer-art'},activeTimerBird()),
         el('span',{class:'active-timer-link'},'タイマーを開く →'));
       banner.dataset.appearance=state.settings.birdAppearance;
     }
+    // Use the persisted start time instead of the browser's SVG animation clock.
+    // This also restores the right pose after returning from the background.
+    const actions=['fly','perch','preen','curious','stretch','puff','hop','sleep','paper'];
+    const action=actions[Math.floor(Math.max(0,Date.now()-state.timer.startedAt)/30000)%actions.length];
+    const bird=banner.querySelector('.active-timer-bird');
+    if(bird.dataset.action!==action){
+      for(const pose of bird.querySelectorAll('.bird-action'))pose.classList.toggle('is-current',pose.classList.contains(`bird-action-${action}`));
+      bird.dataset.action=action;
+    }
+    $('active-timer-start').textContent=`開始 ${new Intl.DateTimeFormat('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(state.timer.startedAt))}`;
     const finished=timerFinished();
     banner.classList.toggle('finished',finished);
     $('active-timer-label').textContent=state.timer.durationSeconds?'残り':'経過';
@@ -265,7 +276,7 @@ function settings(){const restore=input('backup','file','',{accept:'.json,applic
 function render(){route=location.hash.slice(1)||'home';const pages={home,records,calendar,album,settings};if(!pages[route])route='home';$('main').replaceChildren(...pages[route]().flat(Infinity).filter(node=>node!==null&&node!==undefined));for(const a of document.querySelectorAll('.bottom-nav a')){if(a.hash===`#${route}`)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');}connection();}
 function connection(){$('connection').textContent=navigator.onLine?'端末内に保存':'オフライン';}
 async function refresh(){try {state=await readState();render();if($('detail-favorite'))updateDetailFavorite($('detail-favorite').dataset.photoId);void timerNotifications.sync(state.timer).then(refreshNativeTimerStatus);}catch(e){toast(errorMessage(e));}}
-async function offlineSetup(){const status=$('offline-status');if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.6.3')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
+async function offlineSetup(){const status=$('offline-status');if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.6.4')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
 async function init(){try {db=await openDB();await mutate(()=>{});state=await readState();render();offlineSetup();}catch(e){$('main').replaceChildren(...title('保存領域を開けませんでした','記録を保存できる環境で開き直してください。'),el('div',{class:'notice'},errorMessage(e)));}}
 
 // v1.1 interface. Data stays in the v1 database; nothing is sent to a server.

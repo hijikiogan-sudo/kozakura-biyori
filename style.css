@@ -85,10 +85,9 @@ form button[type=submit]{background:#58784e;color:#fffef4}
 @keyframes flight-flap{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(18deg)}}
 @media(prefers-reduced-motion:reduce){.flight-bob,.flight-wing{animation:none}}
 
-/* Nine quiet moments, eight seconds each. Negative delays keep one shared cycle. */
-.bird-action{opacity:0;animation:bird-show-action 72s linear infinite}
-.bird-action-perch{animation-delay:-64s}.bird-action-preen{animation-delay:-56s}.bird-action-curious{animation-delay:-48s}.bird-action-stretch{animation-delay:-40s}.bird-action-puff{animation-delay:-32s}.bird-action-hop{animation-delay:-24s}.bird-action-sleep{animation-delay:-16s}.bird-action-paper{animation-delay:-8s}
-@keyframes bird-show-action{0%,10%{opacity:1}11.111%,98.889%{opacity:0}100%{opacity:1}}
+/* JavaScript selects a pose every 30 seconds from the persisted timer start. */
+.bird-action{display:none}.bird-action.is-current{display:inline}
+.active-timer-start{grid-column:1/-1;font-size:.8rem;font-weight:400;color:#52664c}
 .bird-preen-head{transform-origin:65px 52px;animation:bird-preen 2.4s ease-in-out infinite}
 .bird-curious-head{transform-origin:68px 50px;animation:bird-curious 4s ease-in-out infinite}
 .bird-stretch-wing{transform-origin:61px 62px;animation:bird-stretch 4s ease-in-out infinite}
@@ -107,4 +106,4 @@ form button[type=submit]{background:#58784e;color:#fffef4}
 @keyframes bird-nibble{0%,50%,100%{transform:rotate(0)}20%,70%{transform:rotate(7deg)}}
 @keyframes bird-paper-tug{0%,50%,100%{transform:rotate(0)}25%,75%{transform:rotate(-12deg)}}
 @keyframes bird-paper-fall{0%,35%{opacity:0;transform:translateY(-3px)}50%{opacity:1}100%{opacity:0;transform:translateY(12px)}}
-@media(prefers-reduced-motion:reduce){.bird-action,.bird-gesture{animation:none}.bird-action{opacity:0}.bird-action-perch{opacity:1}}
+@media(prefers-reduced-motion:reduce){.bird-gesture{animation:none}}
