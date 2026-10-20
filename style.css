@@ -84,3 +84,13 @@ form button[type=submit]{background:#58784e;color:#fffef4}
 @keyframes flight-float{0%,100%{transform:translateY(2px) rotate(-3deg)}50%{transform:translateY(-3px) rotate(2deg)}}
 @keyframes flight-flap{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(18deg)}}
 @media(prefers-reduced-motion:reduce){.flight-bob,.flight-wing{animation:none}}
+
+/* Three unhurried moments: fly, perch, then preen. One shared 24s cycle. */
+.bird-action{opacity:0;animation-duration:24s;animation-timing-function:linear;animation-iteration-count:infinite}
+.bird-action-fly{animation-name:bird-show-flight}.bird-action-perch{animation-name:bird-show-perch}.bird-action-preen{animation-name:bird-show-preen}
+.bird-preen-head{transform-origin:65px 52px;animation:bird-preen 2.4s ease-in-out infinite}
+@keyframes bird-show-flight{0%,29%,100%{opacity:1}32%,97%{opacity:0}}
+@keyframes bird-show-perch{0%,29%,65%,100%{opacity:0}32%,62%{opacity:1}}
+@keyframes bird-show-preen{0%,62%,100%{opacity:0}65%,97%{opacity:1}}
+@keyframes bird-preen{0%,100%{transform:rotate(40deg)}50%{transform:rotate(58deg)}}
+@media(prefers-reduced-motion:reduce){.bird-action,.bird-preen-head{animation:none}.bird-action-fly,.bird-action-preen{opacity:0}.bird-action-perch{opacity:1}}

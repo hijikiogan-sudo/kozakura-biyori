@@ -99,6 +99,27 @@ class TimerTests(unittest.TestCase):
         self.page.clock.fast_forward(60000)
         expect(self.page.locator('#active-timer-detail')).to_contain_text('00:16:00')
 
+    def test_bird_actions_cycle_without_changing_timer(self):
+        self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
+        self.start()
+        self.page.evaluate("location.hash='home'")
+        expect(self.page.locator('.bird-action')).to_have_count(3)
+        for name, milliseconds in [('fly', 4000), ('perch', 12000), ('preen', 20000)]:
+            self.page.evaluate("""(milliseconds)=>{
+                document.querySelector('.active-timer-bird').getAnimations({subtree:true}).forEach(a=>{a.pause();a.currentTime=milliseconds;});
+            }""", milliseconds)
+            expect(self.page.locator('.bird-action-'+name)).to_have_css('opacity', '1')
+            for other in {'fly', 'perch', 'preen'}-{name}:
+                expect(self.page.locator('.bird-action-'+other)).to_have_css('opacity', '0')
+            self.page.locator('#active-timer').screenshot(path='/tmp/timer-bird-'+name+'.png')
+        expect(self.page.locator('#active-timer-value')).to_have_text('00:00:00')
+        self.assertEqual(self.records(), [])
+        self.page.emulate_media(reduced_motion='reduce')
+        expect(self.page.locator('.bird-action-perch')).to_have_css('opacity', '1')
+        for selector in ['.bird-action', '.bird-preen-head', '.flight-bob', '.flight-wing']:
+            for node in self.page.locator(selector).all():
+                expect(node).to_have_css('animation-name', 'none')
+
     def test_countup_and_reload(self):
         self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
         expect(self.page.locator('#timer-display')).to_have_text('00:00:00')

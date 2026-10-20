@@ -163,17 +163,28 @@ function activeTimerBird(){
   const palette=M.BIRD_APPEARANCES.find(b=>b.id===state.settings.birdAppearance)||M.BIRD_APPEARANCES[0];
   const svgNode=(tag,attrs={},...children)=>{const node=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,value);node.append(...children);return node;};
   const button=palette.species==='button';
+  const head=(preening=false)=>svgNode('g',{class:preening?'bird-preen-head':'bird-head'},
+    button?svgNode('ellipse',{cx:68,cy:50,rx:23,ry:13,fill:palette.collar}):svgNode('g'),
+    svgNode('ellipse',{cx:73,cy:37,rx:23,ry:24,fill:palette.face}),
+    button?svgNode('circle',{cx:82,cy:34,r:7,fill:'#fffef7'}):svgNode('g'),
+    preening?svgNode('path',{d:'M78 34Q82 39 86 34',fill:'none',stroke:'#344e46','stroke-width':2.5,'stroke-linecap':'round'}):svgNode('g',{},
+      svgNode('circle',{cx:82,cy:34,r:3.6,fill:'#344e46'}),
+      svgNode('circle',{cx:83,cy:33,r:1.1,fill:'#fffef7'})),
+    svgNode('path',{d:'M94 38 107 44 95 51Z',fill:palette.beak}));
+  const resting=(preening=false)=>svgNode('g',{class:preening?'bird-action bird-action-preen':'bird-action bird-action-perch'},
+    svgNode('path',{d:'M17 96Q60 90 106 96',fill:'none',stroke:'#b39772','stroke-width':6,'stroke-linecap':'round'}),
+    svgNode('path',{d:'M24 95Q15 80 32 83Q38 87 24 95Z',fill:'#a4bc8b'}),
+    svgNode('path',{d:'M44 70 31 93 55 83Z',fill:palette.tail}),
+    svgNode('ellipse',{cx:60,cy:64,rx:25,ry:25,fill:palette.body}),
+    svgNode('ellipse',{cx:55,cy:68,rx:16,ry:20,fill:palette.wing}),
+    svgNode('path',{d:'M54 86 54 94M67 86 67 94',fill:'none',stroke:palette.beak,'stroke-width':3,'stroke-linecap':'round'}),
+    head(preening));
   return svgNode('svg',{viewBox:'0 0 120 110',class:'active-timer-bird','aria-hidden':'true','data-appearance':palette.id},
-    svgNode('g',{class:'flight-bob'},
+    svgNode('g',{class:'bird-action bird-action-fly'},svgNode('g',{class:'flight-bob'},
       svgNode('path',{d:'M45 68 17 89 43 87 56 75Z',fill:palette.tail}),
       svgNode('ellipse',{cx:58,cy:64,rx:28,ry:24,fill:palette.body}),
-      button?svgNode('ellipse',{cx:68,cy:50,rx:23,ry:13,fill:palette.collar}):svgNode('g'),
       svgNode('path',{class:'flight-wing',d:'M57 64C34 66 15 43 23 25C29 17 53 35 65 56Z',fill:palette.wing}),
-      svgNode('ellipse',{cx:73,cy:37,rx:23,ry:24,fill:palette.face}),
-      button?svgNode('circle',{cx:82,cy:34,r:7,fill:'#fffef7'}):svgNode('g'),
-      svgNode('circle',{cx:82,cy:34,r:3.6,fill:'#344e46'}),
-      svgNode('circle',{cx:83,cy:33,r:1.1,fill:'#fffef7'}),
-      svgNode('path',{d:'M94 38 107 44 95 51Z',fill:palette.beak})));
+      head())),resting(),resting(true));
 }
 function updateActiveTimer(){
   const banner=$('active-timer');if(!banner)return;banner.hidden=!state.timer||route==='timer';
@@ -248,7 +259,7 @@ function settings(){const restore=input('backup','file','',{accept:'.json,applic
 function render(){route=location.hash.slice(1)||'home';const pages={home,records,calendar,album,settings};if(!pages[route])route='home';$('main').replaceChildren(...pages[route]().flat(Infinity).filter(node=>node!==null&&node!==undefined));for(const a of document.querySelectorAll('.bottom-nav a')){if(a.hash===`#${route}`)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');}connection();}
 function connection(){$('connection').textContent=navigator.onLine?'端末内に保存':'オフライン';}
 async function refresh(){try {state=await readState();render();if($('detail-favorite'))updateDetailFavorite($('detail-favorite').dataset.photoId);void timerNotifications.sync(state.timer).then(refreshNativeTimerStatus);}catch(e){toast(errorMessage(e));}}
-async function offlineSetup(){const status=$('offline-status');if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.6.1')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
+async function offlineSetup(){const status=$('offline-status');if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.6.2')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
 async function init(){try {db=await openDB();await mutate(()=>{});state=await readState();render();offlineSetup();}catch(e){$('main').replaceChildren(...title('保存領域を開けませんでした','記録を保存できる環境で開き直してください。'),el('div',{class:'notice'},errorMessage(e)));}}
 
 // v1.1 interface. Data stays in the v1 database; nothing is sent to a server.
