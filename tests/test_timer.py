@@ -170,7 +170,10 @@ class TimerTests(unittest.TestCase):
         self.assertEqual(len(self.records()),5)
 
     def test_daily_total_keeps_growing_after_countdown_deadline_and_cancel_is_not_saved(self):
-        self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
+        # Keep this same-day test away from midnight; rollover has a separate test.
+        fixed=datetime(2026,10,20,0,0,tzinfo=timezone.utc)
+        self.page.clock.set_system_time(fixed)
+        self.page.clock.pause_at(fixed+timedelta(seconds=1))
         self.seed_daily_flight_records()
         self.page.get_by_role('button',name='カウントダウン',exact=True).click()
         self.start()

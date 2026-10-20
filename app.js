@@ -1,6 +1,6 @@
 'use strict';
 const APP = 'kozakura-biyori', DB = 'kozakura-biyori-local-v1';
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.10.0';
 const $ = id => document.getElementById(id);
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const uid = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -382,7 +382,7 @@ function checkAppUpdate(){
   };
   controller.postMessage({type:'GET_APP_VERSION'},[channel.port2]);
 }
-async function offlineSetup(){const status=$('offline-status');if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{checkAppUpdate();const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.9.0')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
+async function offlineSetup(){const status=$('offline-status');if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{checkAppUpdate();const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.10.0')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
 async function init(){try {db=await openDB();await mutate(()=>{});state=await readState();render();offlineSetup();}catch(e){$('main').replaceChildren(...title('保存領域を開けませんでした','記録を保存できる環境で開き直してください。'),el('div',{class:'notice'},errorMessage(e)));}}
 
 // v1.1 interface. Data stays in the v1 database; nothing is sent to a server.
@@ -475,7 +475,47 @@ function homeCover(p,preview=false){
   }
   return hero;
 }
-function home(){const p=state.profile;return [el('div',{class:'section-title home-appearance'},el('div',{class:'home-date'},prettyDate(today())),el('button',{class:'text-button',onclick:()=>go('appearance')},icon('bird'),'イラスト変更')),homeCover(p),el('button',{class:'flight-start',onclick:()=>go('timer')},icon('bird'),state.timer?'放鳥タイマーへ':'放鳥スタート'),el('section',{class:'health-section'},sectionTitle('今日の健康チェック',el('button',{class:'text-button',onclick:()=>{selectedDate=today();recordForm('health',todayHealth());}},todayHealth()?'今日の記録を編集':'記録する')),healthStrip()),el('div',{class:'quick-grid'},actionTile('weight','体重記録','','weight'),actionTile('behavior','行動記録','','behavior'),actionTile('camera','写真アルバム','','album'),actionTile('calendar','カレンダー','お世話の記録','calendar')),careScheduleCard(),card(sectionTitle('最近の記録',el('a',{href:'#records'},'すべて →')),recordList(sortedRecords().slice(0,4)))];}
+const HOME_OPERATIONS={
+  weight:['体重記録','weight','scale'],behavior:['行動記録','behavior','heart'],album:['写真アルバム','camera','camera'],calendar:['カレンダー','calendar','calendar'],
+  care:['お世話記録','clean','check'],reminders:['お世話の予定','water','bell'],health:['健康記録','health','leaf'],timer:['放鳥タイマー','flight','bird'],
+  chewed:['かじり跡','behavior','camera'],breeding:['産卵・発情','egg','egg'],visits:['通院記録','visit','medical'],note:['メモを書く','note','note']
+};
+function openHomeOperation(id){
+  selectedDate=today();
+  if(id==='chewed'){openChewedAlbum();return;}
+  if(id==='note'){recordForm('note');return;}
+  if(id==='album')albumTab='image';
+  if(id==='health'){recordForm('health',todayHealth());return;}
+  go(id);
+}
+function homeShortcuts(){
+  return el('section',{class:'home-shortcuts'},sectionTitle('よく使う操作',el('button',{class:'text-button',onclick:()=>go('home-actions')},'変更する')),el('div',{class:'quick-grid',id:'home-shortcuts'},state.settings.homeShortcuts.map(id=>{
+    const [name,type,symbol]=HOME_OPERATIONS[id];
+    return el('button',{class:`action-tile type-${type}`,'aria-label':name,onclick:()=>openHomeOperation(id)},el('span',{class:'tile-icon'},icon(symbol)),el('strong',{},name==='写真アルバム'?['写真',el('span',{},'アルバム')]:name));
+  })));
+}
+function homeActionSettingsPage(){
+  const choices=Array.from({length:4},(_,i)=>{
+    const control=el('select',{name:`home-action-${i}`},el('option',{value:''},'表示しない'),M.HOME_SHORTCUTS.map(id=>el('option',{value:id},HOME_OPERATIONS[id][0])));
+    control.value=state.settings.homeShortcuts[i]||'';
+    return label(`操作 ${i+1}`,control);
+  });
+  const error=el('p',{class:'action-selection-error',role:'alert',hidden:''});
+  const form=el('form',{},card(el('p',{class:'muted'},'左から表示する順に、1〜4つ選んでください。同じ操作は重複して選べません。'),choices,error,el('button',{type:'button',class:'ghost wide',onclick:()=>choices.forEach((node,i)=>node.querySelector('select').value=M.DEFAULT_HOME_SHORTCUTS[i])},'初期の4つに戻す')),el('button',{type:'submit',class:'primary wide'},'よく使う操作を保存'),el('button',{type:'button',class:'text-button wide',onclick:()=>go('home')},'保存せずホームへ戻る'));
+  submitForm(form,async data=>{
+    let selected;try{selected=M.validateHomeShortcuts(Array.from({length:4},(_,i)=>data.get(`home-action-${i}`)).filter(Boolean));}catch(e){error.textContent=e.message;error.hidden=false;return;}
+    if(await save(s=>s.settings.homeShortcuts=selected,'よく使う操作を保存しました'))go('home');
+  });
+  return [heading('よく使う操作'),el('p',{class:'intro'},'ホームに置く操作を、お好みで。放鳥スタートは写真の下にいつでも表示します。'),form];
+}
+function latestCareList(){
+  const records=M.sorted(state.records.filter(r=>CARE.includes(r.type)&&r.date<=today()&&(r.date<today()||recordTime(r)<=timeNow())));
+  return el('dl',{class:'latest-care',id:'latest-care','aria-label':'お世話の最終実施'},['food','water','clean'].map(type=>{
+    const last=records.find(r=>r.type===type),day=last?(last.date===today()?'今日':last.date===M.addDays(today(),-1)?'昨日':last.date.replaceAll('-','/')):'';
+    return el('div',{'data-care-type':type},el('dt',{},TYPES[type][1]),el('dd',{},last?['最終：',el('time',{datetime:`${last.date}T${recordTime(last)}`},`${day} ${recordTime(last)}`)]:'まだ記録がありません'));
+  }));
+}
+function home(){const p=state.profile;return [el('div',{class:'section-title home-appearance'},el('div',{class:'home-date'},prettyDate(today())),el('button',{class:'text-button',onclick:()=>go('appearance')},icon('bird'),'イラスト変更')),homeCover(p),el('button',{class:'flight-start',onclick:()=>go('timer')},icon('bird'),state.timer?'放鳥タイマーへ':'放鳥スタート'),el('section',{class:'health-section'},sectionTitle('今日の健康チェック',el('button',{class:'text-button',onclick:()=>{selectedDate=today();recordForm('health',todayHealth());}},todayHealth()?'今日の記録を編集':'記録する')),healthStrip()),homeShortcuts(),careScheduleCard(),card(sectionTitle('最近の記録',el('a',{href:'#records'},'すべて →')),recordList(sortedRecords().slice(0,4)))];}
 async function timerAction(action){if(timerActionPending)return;timerActionPending=true;try{await action();}finally{timerActionPending=false;}}
 async function toggleTimer(){await timerAction(performTimerToggle);}
 async function cancelTimer(){await timerAction(async()=>{
@@ -714,7 +754,7 @@ function careScheduleList(value=today()){
 function homeCareContent(){
   const tasks=M.careTasks(state.settings.reminders,state.records,today(),timeNow()),remaining=CARE.filter(type=>!tasks.some(task=>task.type===type));
   const done=tasks.filter(t=>t.done).length,due=tasks.filter(t=>t.due&&!t.done).length;
-  return [tasks.length?el('p',{class:'care-summary'},`予定 ${tasks.length}件 ／ 実施済み ${done}件・未実施 ${due}件・これから ${tasks.length-done-due}件`):null,tasks.length?el('div',{id:'care-schedule-list','data-today':'yes'},careScheduleList()):null,remaining.length?el('div',{class:'unscheduled-care'},tasks.length?el('h3',{},'ほかのお世話'):null,careChecklist(today(),remaining)):null];
+  return [latestCareList(),tasks.length?el('p',{class:'care-summary'},`予定 ${tasks.length}件 ／ 実施済み ${done}件・未実施 ${due}件・これから ${tasks.length-done-due}件`):null,tasks.length?el('div',{id:'care-schedule-list','data-today':'yes'},careScheduleList()):null,remaining.length?el('div',{class:'unscheduled-care'},tasks.length?el('h3',{},'ほかのお世話'):null,careChecklist(today(),remaining)):null];
 }
 function careScheduleCard(){
   return card(sectionTitle('今日のお世話',el('button',{class:'text-button',onclick:()=>{selectedDate=today();go('reminders');}},'予定・お知らせ')),el('div',{id:'home-care-content'},homeCareContent()),el('div',{class:'care-card-actions'},el('button',{class:'text-button',onclick:()=>{selectedDate=today();go('care');}},'追加・過去の記録 →')));
@@ -741,18 +781,18 @@ function remindersPage(){
 }
 function menuItem(name,sub,symbol,action,cls=''){return el('button',{class:`menu-item ${cls}`,onclick:action},el('span',{class:'menu-icon'},icon(symbol)),el('span',{},el('strong',{},name),sub?el('small',{},sub):null),icon('arrow'));}
 function menuGroup(name,items){return el('section',{class:'menu-group'},el('h2',{},name),el('div',{class:'menu-list'},items));}
-function settings(){return [heading('メニュー'),menuGroup('見た目・毎日のお世話',[menuItem('イラスト変更','見た目の種類と色を選ぶ','bird',()=>go('appearance'),'type-behavior'),menuItem('プロフィール','うちの子の名前・写真・お迎え日','bird',profileDialog,'type-food'),menuItem('放鳥アクション設定','切り替え間隔・ON/OFF・使うしぐさ','bird',()=>go('timer-actions'),'type-clean'),menuItem('お世話チェックリスト','掃除・水替え・ご飯替え','check',()=>go('care'),'type-clean'),menuItem('お世話の予定・お知らせ','予定の保存 → カレンダー登録 → 通知設定','bell',()=>go('reminders'),'type-behavior')]),menuGroup('記録を振り返る',[menuItem('産卵・発情の記録','回数や気づいたようすを残す','egg',()=>go('breeding'),'type-egg'),menuItem('通院記録','病院名と受診内容・メモ','medical',()=>go('visits'),'type-visit'),menuItem('健康グラフ','体重・放鳥・食欲・フン・活動量','chart',()=>go('health'),'type-water')]),menuGroup('データ・使い方',[menuItem('データのバックアップ','写真・動画・記録をファイル保存','cloud',()=>go('backup'),'type-water'),menuItem('アプリについて','使い方・保存とプライバシー','leaf',()=>go('about'),'type-clean')])];}
+function settings(){return [heading('メニュー'),menuGroup('見た目・毎日のお世話',[menuItem('よく使う操作','ホームに置く操作と順番を選ぶ','menu',()=>go('home-actions'),'type-clean'),menuItem('イラスト変更','見た目の種類と色を選ぶ','bird',()=>go('appearance'),'type-behavior'),menuItem('プロフィール','うちの子の名前・写真・お迎え日','bird',profileDialog,'type-food'),menuItem('放鳥アクション設定','切り替え間隔・ON/OFF・使うしぐさ','bird',()=>go('timer-actions'),'type-clean'),menuItem('お世話チェックリスト','掃除・水替え・ご飯替え','check',()=>go('care'),'type-clean'),menuItem('お世話の予定・お知らせ','予定の保存 → カレンダー登録 → 通知設定','bell',()=>go('reminders'),'type-behavior')]),menuGroup('記録を振り返る',[menuItem('産卵・発情の記録','回数や気づいたようすを残す','egg',()=>go('breeding'),'type-egg'),menuItem('通院記録','病院名と受診内容・メモ','medical',()=>go('visits'),'type-visit'),menuItem('健康グラフ','体重・放鳥・食欲・フン・活動量','chart',()=>go('health'),'type-water')]),menuGroup('データ・使い方',[menuItem('データのバックアップ','写真・動画・記録をファイル保存','cloud',()=>go('backup'),'type-water'),menuItem('アプリについて','使い方・保存とプライバシー','leaf',()=>go('about'),'type-clean')])];}
 
 function backupPage(){
   const restore=input('backup','file','',{accept:'.json,application/json',onchange:async e=>{await importBackup(e.target.files[0]);e.target.value='';}});restore.removeAttribute('value');
   const last=state.lastBackup?new Date(state.lastBackup):null;
-  return [heading('バックアップ'),card(el('h2',{},'この端末のバックアップ対象'),backupContents(state),el('p',{class:'muted'},'プロフィール、表紙の写真、写真・動画（かじり跡を含む）、すべての飼育記録、イラスト・放鳥アクション・お世話予定の設定を含みます。実行中のタイマーは復元できません。')),card(el('h2',{},'1. ファイルを書き出す'),el('div',{class:'backup-last-operation',id:'backup-last-operation'},el('span',{},'最終書き出し操作'),el('strong',{},last&&Number.isFinite(+last)?last.toLocaleString('ja-JP'):'まだ書き出していません'),el('small',{},'この日時は、保存先への保存完了を示すものではありません。')),el('button',{class:'primary wide','data-backup-export':'',onclick:exportBackup},icon('download'),'バックアップを書き出す'),el('ol',{class:'help-list'},el('li',{},'写真・動画を含むJSONファイルを作成します。'),el('li',{},'共有・保存画面から「ファイル」などの保存先を選びます。'),el('li',{},'保存先を開き、ファイルがあることを確認してください。')),el('p',{class:'muted'},'アプリではファイルの保存完了を確認できません。機種変更前や大切な記録の後にも保存しておくと安心です。')),card(el('h2',{},'2. ファイルから復元する'),el('p',{},'ファイルを選ぶと、現在とファイル内の件数を比較します。確認するまでは現在のデータを変更しません。'),label('バックアップから復元',restore),el('p',{class:'restore-warning'},'復元は現在のプロフィール・写真・動画・記録・設定を置き換えます。実行中の放鳥は終了し、計測中の時間は記録されません。'),el('p',{class:'muted'},'旧版v1・現行v2のファイルに対応します。読み込むファイルと現在のデータの内容を確認し、必要なら先に現在のバックアップを書き出してください。'))];
+  return [heading('バックアップ'),card(el('h2',{},'この端末のバックアップ対象'),backupContents(state),el('p',{class:'muted'},'プロフィール、表紙の写真、写真・動画（かじり跡を含む）、すべての飼育記録、イラスト・よく使う操作・放鳥アクション・お世話予定の設定を含みます。実行中のタイマーは復元できません。')),card(el('h2',{},'1. ファイルを書き出す'),el('div',{class:'backup-last-operation',id:'backup-last-operation'},el('span',{},'最終書き出し操作'),el('strong',{},last&&Number.isFinite(+last)?last.toLocaleString('ja-JP'):'まだ書き出していません'),el('small',{},'この日時は、保存先への保存完了を示すものではありません。')),el('button',{class:'primary wide','data-backup-export':'',onclick:exportBackup},icon('download'),'バックアップを書き出す'),el('ol',{class:'help-list'},el('li',{},'写真・動画を含むJSONファイルを作成します。'),el('li',{},'共有・保存画面から「ファイル」などの保存先を選びます。'),el('li',{},'保存先を開き、ファイルがあることを確認してください。')),el('p',{class:'muted'},'アプリではファイルの保存完了を確認できません。機種変更前や大切な記録の後にも保存しておくと安心です。')),card(el('h2',{},'2. ファイルから復元する'),el('p',{},'ファイルを選ぶと、現在とファイル内の件数を比較します。確認するまでは現在のデータを変更しません。'),label('バックアップから復元',restore),el('p',{class:'restore-warning'},'復元は現在のプロフィール・写真・動画・記録・設定を置き換えます。実行中の放鳥は終了し、計測中の時間は記録されません。'),el('p',{class:'muted'},'旧版v1・現行v2のファイルに対応します。読み込むファイルと現在のデータの内容を確認し、必要なら先に現在のバックアップを書き出してください。'))];
 }
 
 function aboutPage(){return [heading('アプリについて'),card(el('h2',{},'コザボタ日和'),el('p',{},'小さな変化も、大切な思い出も。愛鳥と過ごす毎日をやさしく記録します。')),card(el('h2',{},'iPhoneで使う'),el('ol',{class:'help-list'},el('li',{},'Safariで公開URLを開き、共有 → ホーム画面に追加。'),el('li',{},'ホーム画面から起動し「オフライン準備完了」を確認。'),el('li',{},'プロフィールに愛鳥の名前と好きな写真を設定。'),el('li',{},'機内モードでも起動・保存できるか実機で確認。'))),card(el('h2',{},'保存とプライバシー'),el('p',{},'写真・動画・プロフィール・飼育記録はこの端末のIndexedDBに保存し、サーバーやGitHubに送信しません。別の人とは共有・同期されません。同じ端末・同じブラウザを共用するとデータも共用されます。'),el('p',{},'写真と動画は合計100件、記録50,000件、データ全体約38MBまで。動画は1本8MB以下です。容量不足時は保存エラーを表示します。'),el('p',{},'ホーム画面アプリとSafari、別ブラウザでは保存場所が異なる場合があります。使う場所を統一し、週1回や大切な記録の後にバックアップしてください。Webサイトデータの削除、故障・機種変更、OSの整理で記録が失われる場合があります。'),el('p',{},'初期イラストはこのアプリのオリジナルです。自分が利用する権利のある写真・動画を選んでください。動画は元ファイルを端末内に保存するため、位置情報等のメタデータが含まれる場合があります。バックアップを共有する前に内容を確認してください。'),el('p',{},'広告・解析・課金APIはありません。公開サーバーにはアクセス時の通信情報が残る場合があります。カレンダー用ファイルの追加・同期はカレンダーアプリの設定に従います。')),el('div',{class:'notice'},'このアプリは観察の記録用です。診断や適正体重の判定はしません。気になる変化は記録を持って、鳥を診られる獣医師に相談してください。')];}
 function breedingPage(){return [heading('産卵・発情の記録'),el('div',{class:'row'},el('button',{class:'primary',onclick:()=>recordForm('egg')},icon('egg'),'産卵を記録'),el('button',{class:'ghost',onclick:()=>recordForm('estrus')},icon('heart'),'発情のようす')),card(recordList(sortedRecords().filter(r=>['egg','estrus'].includes(r.type)).slice(0,40)))];}
 function visitsPage(){return [heading('通院記録'),el('button',{class:'primary wide',onclick:()=>recordForm('visit')},icon('medical'),'通院を記録する'),card(recordList(sortedRecords().filter(r=>r.type==='visit').slice(0,40)))];}
-function render(){setupHeader();route=location.hash.slice(1)||'home';const pages={home,records,calendar,album,settings,appearance:appearancePage,timer:timerPage,'timer-actions':timerActionSettingsPage,weight:weightPage,behavior:behaviorPage,care:carePage,health:healthPage,reminders:remindersPage,backup:backupPage,about:aboutPage,breeding:breedingPage,visits:visitsPage};if(!pages[route])route='home';$('main').replaceChildren(...pages[route]().flat(Infinity).filter(node=>node!==null&&node!==undefined));updateActiveTimer();updateBackupControls();const nav=document.querySelector('.bottom-nav');nav.replaceChildren(navLink('home','ホーム','home'),navLink('records','記録','note'),navLink('calendar','カレンダー','calendar'),navLink('album','アルバム','camera'),navLink('settings','メニュー','menu'));const active=['timer'].includes(route)?'home':['weight','behavior','care','health','breeding','visits'].includes(route)?'records':['reminders','backup','about','appearance','timer-actions'].includes(route)?'settings':route;for(const a of nav.querySelectorAll('a'))if(a.hash===`#${active}`)a.setAttribute('aria-current','page');connection();}
+function render(){setupHeader();route=location.hash.slice(1)||'home';const pages={home,records,calendar,album,settings,appearance:appearancePage,timer:timerPage,'timer-actions':timerActionSettingsPage,'home-actions':homeActionSettingsPage,weight:weightPage,behavior:behaviorPage,care:carePage,health:healthPage,reminders:remindersPage,backup:backupPage,about:aboutPage,breeding:breedingPage,visits:visitsPage};if(!pages[route])route='home';$('main').replaceChildren(...pages[route]().flat(Infinity).filter(node=>node!==null&&node!==undefined));updateActiveTimer();updateBackupControls();const nav=document.querySelector('.bottom-nav');nav.replaceChildren(navLink('home','ホーム','home'),navLink('records','記録','note'),navLink('calendar','カレンダー','calendar'),navLink('album','アルバム','camera'),navLink('settings','メニュー','menu'));const active=['timer'].includes(route)?'home':['weight','behavior','care','health','breeding','visits'].includes(route)?'records':['reminders','backup','about','appearance','timer-actions','home-actions'].includes(route)?'settings':route;for(const a of nav.querySelectorAll('a'))if(a.hash===`#${active}`)a.setAttribute('aria-current','page');connection();}
 function setupHeader(){const header=document.querySelector('.site-header');header.replaceChildren(el('a',{href:'#home',class:'brand'},icon('bird'),el('span',{},'コザボタ日和',el('small',{},'愛鳥と暮らす日々'))),el('div',{class:'header-tools'},el('span',{id:'connection',class:'connection-dot','aria-label':'接続状態'}),el('button',{class:'icon-button','aria-label':'お知らせ設定',onclick:()=>go('reminders')},icon('bell')),el('button',{class:'icon-button','aria-label':'メニュー',onclick:()=>go('settings')},icon('menu'))));}
 function connection(){const node=$('connection');if(node){node.title=navigator.onLine?'端末内に保存':'オフライン';node.setAttribute('aria-label',node.title);node.classList.toggle('offline',!navigator.onLine);}}
 setupHeader();
