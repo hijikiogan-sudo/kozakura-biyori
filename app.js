@@ -1,6 +1,6 @@
 'use strict';
 const APP = 'kozakura-biyori', DB = 'kozakura-biyori-local-v1';
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.9.0';
 const $ = id => document.getElementById(id);
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const uid = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -382,7 +382,7 @@ function checkAppUpdate(){
   };
   controller.postMessage({type:'GET_APP_VERSION'},[channel.port2]);
 }
-async function offlineSetup(){const status=$('offline-status');if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{checkAppUpdate();const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.8.0')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
+async function offlineSetup(){const status=$('offline-status');if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{checkAppUpdate();const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.9.0')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
 async function init(){try {db=await openDB();await mutate(()=>{});state=await readState();render();offlineSetup();}catch(e){$('main').replaceChildren(...title('保存領域を開けませんでした','記録を保存できる環境で開き直してください。'),el('div',{class:'notice'},errorMessage(e)));}}
 
 // v1.1 interface. Data stays in the v1 database; nothing is sent to a server.
@@ -493,7 +493,49 @@ async function performTimerToggle(){if(state.timer){const target=state.timer.sta
 }}
 function timerPage(){const records=M.day(state.records,today()).filter(r=>r.type==='flight'),sum=Math.round(records.reduce((s,r)=>s+r.minutes,0)*10)/10;return [heading('放鳥タイマー',el('button',{class:'icon-button','aria-label':'放鳥の履歴',onclick:()=>{recordFilter='flight';go('records');}},icon('clock'))),el('button',{class:'text-button wide',onclick:()=>go('timer-actions')},icon('bird'),'放鳥アクション設定'),state.timer?null:timerControls(),el('section',{id:'timer-scene',class:`timer-scene ${state.timer?'running':''} ${timerFinished()?'finished':''}`},el('div',{class:'timer-ring'},el('span',{class:'timer-status',id:'timer-status'},timerStatus()),el('div',{class:'timer-display',id:'timer-display'},timerText()),el('small',{},state.timer?`開始 ${new Date(state.timer.startedAt).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}`:'準備ができたらスタート'),el('img',{src:state.profile.photo||birdImage(),alt:'愛鳥',class:'timer-bird'}))),el('p',{class:'timer-timing',id:'timer-elapsed'},''),dailyFlightSummary('timer-daily-total'),el('p',{class:'notice',id:'timer-complete',role:'status',hidden:timerFinished()?null:''},'設定時間になりました。愛鳥を確認し、放鳥を終えたら「放鳥を終了」を押してください。実際に終了した時点までの時間を記録します。'),el('button',{class:'flight-start',onclick:toggleTimer},icon('bird'),state.timer?'放鳥を終了':'放鳥をはじめる'),state.timer?el('button',{class:'ghost wide',onclick:cancelTimer},'記録せず取り消す'):el('button',{class:'text-button wide',onclick:()=>{selectedDate=today();recordForm('flight');}},'時間を手入力する'),timerNotificationControls(),card(el('h2',{},'今日の放鳥記録'),records.length?el('div',{class:'flight-history'},records.slice().reverse().map((r,i)=>el('div',{},el('span',{},`${i+1}回目`),el('span',{},r.startedAt?`${recordTime(r)} – ${new Date(r.endedAt).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}`:recordTime(r)),el('strong',{},`${r.minutes}分`))),el('div',{class:'flight-total'},el('strong',{},'合計'),el('strong',{},`${sum}分`))):empty('今日の放鳥記録はまだありません。')),card(sectionTitle('メモ',el('button',{class:'icon-button','aria-label':'放鳥メモを記録',onclick:()=>{selectedDate=today();recordForm('note');}},icon('note'))),el('p',{class:'muted'},'アプリを閉じていた時間も含めて計測し、開き直すと残り時間を更新します。カウントダウンが0になっても自動では記録を終了しません。画面を閉じる場合のお知らせは、上のカレンダー追加かiPhone標準のタイマーを使ってください。時刻を変更した場合や終了忘れは手入力で修正してください。'))];}
 function rangeTabs(){return tabs([[7,'7日'],[30,'30日'],[90,'3か月'],[365,'1年']],chartDays,v=>chartDays=v,'period-tabs');}
-function lineChart(metric=chartMetric){const data=M.chartData(state.records,metric,chartDays);if(!data.length)return empty('この期間の記録がありません。実際のようすを記録すると表示されます。', '❀');const isHealth=['appetite','droppings','activity'].includes(metric),numeric=data.filter(x=>x.value!==null),vals=numeric.map(r=>r.value);const low=isHealth?1:Math.min(...vals)-Math.max(1,(Math.max(...vals)-Math.min(...vals))*.2),high=isHealth?3:Math.max(...vals)+Math.max(1,(Math.max(...vals)-Math.min(...vals))*.2),ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 430 210');svg.setAttribute('role','img');svg.setAttribute('aria-label',`${metric==='weight'?'体重':metric==='flight'?'放鳥時間':{appetite:'食欲',droppings:'フン',activity:'活動量'}[metric]}のグラフ ${data.length}日分`);svg.classList.add('chart');const from=M.addDays(today(),1-chartDays),span=Math.max(1,chartDays-1),x=d=>42+(new Date(`${d}T12:00:00`)-new Date(`${from}T12:00:00`))/86400000/span*370,y=v=>175-(v-low)/Math.max(.1,high-low)*150;function shape(tag,attrs,text){const n=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))n.setAttribute(k,v);if(text)n.textContent=text;svg.append(n);return n;}for(let i=0;i<(isHealth?3:5);i++){const v=low+(high-low)*i/(isHealth?2:4);shape('line',{x1:42,y1:y(v),x2:412,y2:y(v),stroke:'#e7e8db'});shape('text',{x:2,y:y(v)+4,fill:'#7c8574','font-size':isHealth?9:11},isHealth?['少なめ','いつも通り','多め'][i]:v.toFixed(1));}let segment=[];const flush=()=>{if(segment.length)shape('polyline',{points:segment.join(' '),fill:'none',stroke:metric==='flight'?'#86a57b':'#df8e8f','stroke-width':3});segment=[];};for(const d of data){if(d.value===null){flush();shape('text',{x:x(d.date),y:201,fill:'#bf856d','font-size':12,'text-anchor':'middle'},'!');continue;}segment.push(`${x(d.date)},${y(d.value)}`);}flush();for(const d of numeric){const circle=shape('circle',{cx:x(d.date),cy:y(d.value),r:4,fill:'#fff9ed',stroke:metric==='flight'?'#86a57b':'#df8e8f','stroke-width':2});const tip=document.createElementNS(ns,'title');tip.textContent=`${d.date} ${d.value}${metric==='weight'?'g':metric==='flight'?'分':''}`;circle.append(tip);}return [svg,el('div',{class:'chart-labels'},el('span',{},prettyDate(from,true)),el('span',{},prettyDate(today(),true))),el('p',{class:'muted'},isHealth?'少なめ・いつもどおり・多めを表示。「気になる」は ! で示します。空白の日を補完せず、記録点を結んでいます。':'同じ日の体重は最後の記録、放鳥は合計時間を表示します。空白の日を補完せず記録点を結びます。')];}
+function chartValueText(metric,value){
+  if(['appetite','droppings','activity'].includes(metric))return value===null?'気になる':{1:'少なめ',2:'いつもどおり',3:'多め'}[value];
+  return `${value} ${metric==='weight'?'g':'分'}`;
+}
+function lineChart(metric=chartMetric){
+  const data=M.chartData(state.records,metric,chartDays);
+  if(!data.length)return empty('この期間の記録がありません。実際のようすを記録すると表示されます。');
+  const names={weight:'体重',flight:'放鳥時間',appetite:'食欲',droppings:'フン',activity:'活動量'};
+  const isHealth=['appetite','droppings','activity'].includes(metric),numeric=data.filter(point=>point.value!==null),values=numeric.map(point=>point.value);
+  // Keep the existing range, date grouping, and missing/attention value rules.
+  const low=isHealth?1:Math.min(...values)-Math.max(1,(Math.max(...values)-Math.min(...values))*.2);
+  const high=isHealth?3:Math.max(...values)+Math.max(1,(Math.max(...values)-Math.min(...values))*.2);
+  const from=M.addDays(today(),1-chartDays),span=Math.max(1,chartDays-1);
+  const x=date=>8+(new Date(`${date}T12:00:00`)-new Date(`${from}T12:00:00`))/86400000/span*384;
+  const y=value=>175-(value-low)/Math.max(.1,high-low)*150;
+  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('viewBox','0 0 400 210');svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('role','img');
+  svg.setAttribute('aria-label',`${names[metric]}のグラフ ${data.length}日分。値は下の一覧でも確認できます。`);svg.classList.add('chart');
+  const shape=(tag,attrs)=>{const node=document.createElementNS(ns,tag);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,value);svg.append(node);return node;};
+  const ticks=Array.from({length:isHealth?3:5},(_,index)=>{const value=low+(high-low)*index/(isHealth?2:4);return {value,label:isHealth?['少なめ','いつもどおり','多め'][index]:value.toFixed(1)};});
+  const longest=ticks.map(tick=>tick.label).reduce((a,b)=>a.length>=b.length?a:b,'');
+  const axis=el('div',{class:'chart-y-axis','aria-hidden':'true'},el('span',{class:'chart-axis-sizer'},longest));
+  for(const tick of ticks){
+    shape('line',{x1:8,y1:y(tick.value),x2:392,y2:y(tick.value),stroke:'#dce4d0','vector-effect':'non-scaling-stroke'});
+    const label=el('span',{class:'chart-y-tick'},tick.label);label.style.top=`${y(tick.value)/210*100}%`;axis.append(label);
+  }
+  const color=metric==='flight'?'#789771':'#c67b80',plot=el('div',{class:'chart-plot'},svg);
+  let segment=[];
+  const flush=()=>{if(segment.length)shape('polyline',{points:segment.join(' '),fill:'none',stroke:color,'stroke-width':3,'vector-effect':'non-scaling-stroke'});segment=[];};
+  for(const point of data){
+    if(point.value===null)flush();else segment.push(`${x(point.date)},${y(point.value)}`);
+    // HTML labels and markers keep their CSS-pixel size at every viewport width.
+    const marker=el('span',{class:`chart-point${point.value===null?' chart-attention':''}`,'data-date':point.date,'data-value':point.value===null?'attention':point.value,'aria-hidden':'true',title:`${point.date} ${chartValueText(metric,point.value)}`},point.value===null?'!':'');
+    marker.style.left=`${x(point.date)/400*100}%`;marker.style.top=`${(point.value===null?201:y(point.value))/210*100}%`;
+    if(point.value!==null)marker.style.borderColor=color;
+    plot.append(marker);
+  }
+  flush();
+  const caption=el('figcaption',{class:'chart-caption'},`${names[metric]}${metric==='weight'?'（g）':metric==='flight'?'（分）':''} · ${data.length}日分`);
+  const frame=el('div',{class:'chart-frame'},axis,plot,el('div',{class:'chart-labels'},el('span',{},prettyDate(from,true)),el('span',{},prettyDate(today(),true))));
+  const list=el('details',{class:'chart-data'},el('summary',{},'記録点の値を一覧で見る'),el('table',{},el('caption',{},`${names[metric]}の記録点`),el('thead',{},el('tr',{},el('th',{scope:'col'},'日付'),el('th',{scope:'col'},'値・状態'))),el('tbody',{},data.map(point=>el('tr',{'data-date':point.date},el('th',{scope:'row'},point.date.replaceAll('-','/')),el('td',{},chartValueText(metric,point.value)))))));
+  return [el('figure',{class:'chart-figure'},caption,frame),list,el('p',{class:'muted'},isHealth?'少なめ・いつもどおり・多めを表示。「気になる」は ! で示し、正常値には置き換えません。記録のない日は補完せず、記録点を結んでいます。':'同じ日の体重は最後の記録、放鳥は合計時間を表示します。記録のない日は補完せず、記録点を結んでいます。')];
+}
 function openWeightForm(){selectedDate=today();recordForm('weight');}
 function weightPage(){const all=sortedRecords().filter(r=>r.type==='weight'),last=all[0];return [heading('体重の記録',el('button',{class:'icon-button','aria-label':'体重を追加',onclick:openWeightForm},'+')),el('section',{class:'latest-weight'},icon('scale'),el('div',{},el('small',{},'最新の体重'),el('strong',{},last?last.value:'—',el('small',{},' g')),el('span',{},last?`${last.date.replaceAll('-','/')} ${recordTime(last)}`:'測った値を記録しましょう')),el('img',{src:state.profile.photo||birdImage(),alt:'愛鳥'})),el('button',{class:'primary wide',onclick:openWeightForm},'体重を記録する'),tabs([['graph','グラフ'],['list','一覧'],['memo','メモ']],weightTab,v=>weightTab=v,'weight-tabs','体重の表示方法'),rangeTabs(),weightTab==='graph'?card(lineChart('weight')):null,card(el('h2',{},weightTab==='memo'?'体重のメモ':'体重の記録'),recordList(M.period(all,chartDays).filter(r=>weightTab!=='memo'||r.note).slice(0,40)))];}
 
