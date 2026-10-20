@@ -70,3 +70,17 @@ label,.cover-layout legend,.cover-adjustments legend{font-size:1rem}.tabs button
 .calendar-day{position:relative;min-height:66px;border-radius:17px;gap:2px;padding:6px 0}.calendar-day.has-record{background:#edf3e1}.calendar-day.selected{background:#58784e}.calendar-day .day-number{line-height:1.2}.day-record-count{font-size:.875rem;line-height:1.3;min-height:17px;color:#425d36}.calendar-day.selected .day-record-count{color:#fffef4}.selected-date-mark{position:absolute;right:3px;top:2px;font-size:12px;line-height:1}.calendar-key{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:.875rem;color:#526448}.calendar-count-help{margin:8px 0}.calendar-legend{justify-content:flex-start;margin-bottom:16px}
 .media-add-control{display:flex;align-items:center;justify-content:center;gap:8px;position:relative;min-height:48px;padding:12px;margin:0 0 10px;border-radius:15px;background:#58784e;color:#fffef4;font-size:1rem;text-align:center;overflow:hidden;cursor:pointer}.media-add-control input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0}.media-add-control:focus-within{outline:3px solid #cf9d64;outline-offset:2px}.album-result-count{font-size:.93rem;color:#526448;margin:14px 0}.video-mark{display:inline-flex;align-items:center;gap:3px;padding:2px 5px;border-radius:6px;background:#3e563dde;font-size:12px}.favorite-check{position:absolute;right:0;bottom:0;border-radius:50%;background:#58784e;color:#fffef4;min-width:15px;height:15px;font-size:12px;line-height:15px;text-align:center}.favorite-button.active{border:2px solid #58784e}.photo-card figcaption small{white-space:normal;line-height:1.5}.tabs[aria-label="アルバムの種類"] button{padding-inline:0;letter-spacing:-.04em}
 form button[type=submit]{background:#58784e;color:#fffef4}
+
+/* A readable, quiet flight companion on every screen while timing. */
+.active-timer{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 74px;gap:3px 8px;padding:15px 16px;margin:10px 0 20px;border-radius:23px;background:#eaf1de;border:1px solid #bccdab;color:#3e5943;line-height:1.5}
+.active-timer-heading{font-size:1rem;font-weight:650;grid-column:1}
+.active-timer-reading{grid-column:1;display:flex;align-items:baseline;flex-wrap:wrap;gap:3px 10px;min-width:0}
+.active-timer-label{font-size:1rem}.active-timer-value{font-size:min(2.3rem,10vw);line-height:1.3;letter-spacing:.02em;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;min-width:0}
+.active-timer-detail{grid-column:1/-1;font-size:.875rem;font-weight:400;overflow-wrap:anywhere}
+.active-timer-art{grid-column:2;grid-row:1/4;align-self:center;width:74px;height:65px;pointer-events:none}.active-timer-bird{width:100%;height:100%;overflow:visible}
+.active-timer-link{grid-column:1/-1;font-size:.875rem;text-align:right;margin-top:4px}
+.active-timer.finished{background:#faf0db;border-color:#d8bf8b}.active-timer.finished .active-timer-detail{font-weight:650;color:#73542f}
+.flight-bob{animation:flight-float 3s ease-in-out infinite;transform-origin:60px 55px}.flight-wing{animation:flight-flap 1.5s ease-in-out infinite;transform-origin:60px 61px}
+@keyframes flight-float{0%,100%{transform:translateY(2px) rotate(-3deg)}50%{transform:translateY(-3px) rotate(2deg)}}
+@keyframes flight-flap{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(18deg)}}
+@media(prefers-reduced-motion:reduce){.flight-bob,.flight-wing{animation:none}}

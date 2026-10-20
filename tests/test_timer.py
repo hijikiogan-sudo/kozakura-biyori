@@ -54,6 +54,51 @@ class TimerTests(unittest.TestCase):
     def records(self):
         return self.page.evaluate('(async () => (await readState()).records)()')
 
+    def test_active_card_large_reading_and_stable_animation(self):
+        self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
+        self.start()
+        self.page.evaluate("location.hash='home'")
+        banner = self.page.locator('#active-timer')
+        expect(banner).to_be_visible()
+        expect(banner).to_contain_text('経過')
+        self.assertGreaterEqual(self.page.locator('#active-timer-value').evaluate('(n)=>parseFloat(getComputedStyle(n).fontSize)'), 32)
+        self.page.evaluate("window.testBird=document.querySelector('.active-timer-bird')")
+        self.page.clock.fast_forward(65000)
+        expect(self.page.locator('#active-timer-value')).to_have_text('00:01:05')
+        self.assertTrue(self.page.evaluate("window.testBird===document.querySelector('.active-timer-bird')"))
+        for width in (320, 390):
+            self.page.set_viewport_size({'width': width, 'height': 844})
+            for font in ('14px', '28px'):
+                self.page.evaluate('(font)=>document.documentElement.style.fontSize=font', font)
+                self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
+                self.assertTrue(self.page.locator('#active-timer-value').evaluate('(n)=>n.getBoundingClientRect().height<=parseFloat(getComputedStyle(n).lineHeight)+2'))
+        self.page.screenshot(path='/tmp/flight-timer-large-text.png', full_page=True)
+        self.page.evaluate("document.documentElement.style.fontSize='14px'")
+        self.page.screenshot(path='/tmp/flight-timer.png', full_page=True)
+        self.page.reload()
+        expect(self.page.locator('#active-timer-value')).to_have_text('00:01:05')
+        banner.click()
+        expect(self.page.locator('#timer-display')).to_be_visible()
+        expect(banner).to_be_hidden()
+
+    def test_active_card_countdown_and_selected_bird(self):
+        self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
+        self.page.evaluate("(async()=>{await save(s=>s.settings.birdAppearance='button-blue','')})()")
+        self.page.get_by_role('button', name='カウントダウン', exact=True).click()
+        self.start()
+        self.page.evaluate("location.hash='home'")
+        expect(self.page.locator('#active-timer-label')).to_have_text('残り')
+        expect(self.page.locator('.active-timer-bird')).to_have_attribute('data-appearance', 'button-blue')
+        self.page.emulate_media(reduced_motion='reduce')
+        self.assertEqual(self.page.locator('.flight-wing').evaluate('(n)=>getComputedStyle(n).animationName'), 'none')
+        self.page.clock.fast_forward(15*60000)
+        expect(self.page.locator('#active-timer-value')).to_have_text('00:00:00')
+        expect(self.page.locator('#active-timer')).to_have_class('active-timer finished')
+        expect(self.page.locator('#active-timer-detail')).to_contain_text('設定時間に到達')
+        self.assertEqual(self.records(), [])
+        self.page.clock.fast_forward(60000)
+        expect(self.page.locator('#active-timer-detail')).to_contain_text('00:16:00')
+
     def test_countup_and_reload(self):
         self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
         expect(self.page.locator('#timer-display')).to_have_text('00:00:00')

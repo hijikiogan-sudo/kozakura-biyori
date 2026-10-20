@@ -158,9 +158,42 @@ function timerNotificationControls(){
   return card(el('h2',{},'終了のお知らせ'),timerNotifications.available?el('div',{},el('p',{class:'notice',id:'native-timer-status',role:'status'},nativeTimerStatus()),el('button',{class:'ghost wide',onclick:async()=>{await timerNotifications.requestPermission();await timerNotifications.sync(state.timer);refreshNativeTimerStatus();}},'端末の通知を確認')):el('p',{class:'notice'},'画面を閉じている間の通知は、標準カレンダーへの追加が必要です。このアプリだけでは自動で予約できません。急ぐときは、iPhoneの「時計 → タイマー」に残り時間を設定してください。'),calendar,el('p',{class:'muted'},'ファイルの保存だけでは通知は有効になりません。カレンダーへの追加完了・通知許可・予定の削除をアプリから確認・操作することはできません。同じ予定の重複追加にもご注意ください。'),el('button',{class:'ghost wide',onclick:async()=>{const ready=await prepareTimerAudio();if(ready&&playTimerSound())toast('終了音を鳴らしました。聞こえる音量か確認してください。');else toast('音を再生できません。端末の音量とブラウザの設定を確認してください。');refreshTimerAudioStatus();}},'終了音を試す'),el('p',{id:'timer-audio-status',class:'muted',role:'status'},timerAudioStatus()),el('p',{class:'muted'},'アプリの終了音は画面を表示している間に鳴ります。画面ロック・別アプリへの切り替え・アプリ終了中の音は保証できません。'));
 }
 function timerElapsedText(){const n=state.timer?Math.max(0,Math.floor((Date.now()-state.timer.startedAt)/1000)):0;return `${String(Math.floor(n/3600)).padStart(2,'0')}:${String(Math.floor(n/60)%60).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;}
+// Decorative flight illustration uses the same local palette as the selected bird.
+function activeTimerBird(){
+  const palette=M.BIRD_APPEARANCES.find(b=>b.id===state.settings.birdAppearance)||M.BIRD_APPEARANCES[0];
+  const svgNode=(tag,attrs={},...children)=>{const node=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,value);node.append(...children);return node;};
+  const button=palette.species==='button';
+  return svgNode('svg',{viewBox:'0 0 120 110',class:'active-timer-bird','aria-hidden':'true','data-appearance':palette.id},
+    svgNode('g',{class:'flight-bob'},
+      svgNode('path',{d:'M45 68 17 89 43 87 56 75Z',fill:palette.tail}),
+      svgNode('ellipse',{cx:58,cy:64,rx:28,ry:24,fill:palette.body}),
+      button?svgNode('ellipse',{cx:68,cy:50,rx:23,ry:13,fill:palette.collar}):svgNode('g'),
+      svgNode('path',{class:'flight-wing',d:'M57 64C34 66 15 43 23 25C29 17 53 35 65 56Z',fill:palette.wing}),
+      svgNode('ellipse',{cx:73,cy:37,rx:23,ry:24,fill:palette.face}),
+      button?svgNode('circle',{cx:82,cy:34,r:7,fill:'#fffef7'}):svgNode('g'),
+      svgNode('circle',{cx:82,cy:34,r:3.6,fill:'#344e46'}),
+      svgNode('circle',{cx:83,cy:33,r:1.1,fill:'#fffef7'}),
+      svgNode('path',{d:'M94 38 107 44 95 51Z',fill:palette.beak})));
+}
 function updateActiveTimer(){
   const banner=$('active-timer');if(!banner)return;banner.hidden=!state.timer||route==='timer';
-  if(state.timer)banner.textContent=timerFinished()?`放鳥は計測中 · 設定時間に到達 · 経過 ${timerElapsedText()} →`:`放鳥は計測中 · ${state.timer.durationSeconds?'残り':'経過'} ${timerText()} →`;
+  if(state.timer){
+    // Keep the illustration mounted between ticks so its motion stays gentle.
+    if(banner.dataset.appearance!==state.settings.birdAppearance||!$('active-timer-value')){
+      banner.replaceChildren(
+        el('span',{class:'active-timer-heading'},'放鳥は計測中'),
+        el('span',{class:'active-timer-reading'},el('span',{id:'active-timer-label',class:'active-timer-label'}),el('strong',{id:'active-timer-value',class:'active-timer-value'})),
+        el('span',{id:'active-timer-detail',class:'active-timer-detail'}),
+        el('span',{class:'active-timer-art'},activeTimerBird()),
+        el('span',{class:'active-timer-link'},'タイマーを開く →'));
+      banner.dataset.appearance=state.settings.birdAppearance;
+    }
+    const finished=timerFinished();
+    banner.classList.toggle('finished',finished);
+    $('active-timer-label').textContent=state.timer.durationSeconds?'残り':'経過';
+    $('active-timer-value').textContent=timerText();
+    $('active-timer-detail').textContent=finished?`設定時間に到達 · 経過 ${timerElapsedText()}`:state.timer.durationSeconds?`経過 ${timerElapsedText()}`:'のびのび、放鳥タイム';
+  }
   if($('timer-elapsed'))$('timer-elapsed').textContent=state.timer?`開始 ${new Date(state.timer.startedAt).toLocaleString('ja-JP')} ／ 経過 ${timerElapsedText()}`:'終了すると実際の放鳥時間を記録します。';
 }
 function updateTimerDisplay(){
@@ -215,7 +248,7 @@ function settings(){const restore=input('backup','file','',{accept:'.json,applic
 function render(){route=location.hash.slice(1)||'home';const pages={home,records,calendar,album,settings};if(!pages[route])route='home';$('main').replaceChildren(...pages[route]().flat(Infinity).filter(node=>node!==null&&node!==undefined));for(const a of document.querySelectorAll('.bottom-nav a')){if(a.hash===`#${route}`)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');}connection();}
 function connection(){$('connection').textContent=navigator.onLine?'端末内に保存':'オフライン';}
 async function refresh(){try {state=await readState();render();if($('detail-favorite'))updateDetailFavorite($('detail-favorite').dataset.photoId);void timerNotifications.sync(state.timer).then(refreshNativeTimerStatus);}catch(e){toast(errorMessage(e));}}
-async function offlineSetup(){const status=$('offline-status');if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.6.0')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
+async function offlineSetup(){const status=$('offline-status');if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.6.1')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
 async function init(){try {db=await openDB();await mutate(()=>{});state=await readState();render();offlineSetup();}catch(e){$('main').replaceChildren(...title('保存領域を開けませんでした','記録を保存できる環境で開き直してください。'),el('div',{class:'notice'},errorMessage(e)));}}
 
 // v1.1 interface. Data stays in the v1 database; nothing is sent to a server.

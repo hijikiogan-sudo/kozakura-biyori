@@ -1,6 +1,6 @@
 'use strict';
 // Only this app's shell is cached. User photos/records never enter network/cache requests.
-const CACHE = 'kozakura-biyori-shell-v1.6.0';
+const CACHE = 'kozakura-biyori-shell-v1.6.1';
 const BASE = new URL('./', self.location.href);
 const SHELL = ['', 'index.html', 'style.css', 'app.js', 'platform.js', 'model.js', 'art.svg', 'bird.svg', 'manifest.webmanifest', 'icon-duo-192.png', 'icon-duo-512.png', 'apple-touch-icon-duo.png',"birds/lovebird-green.svg","birds/lovebird-yellow.svg","birds/lovebird-aqua.svg","birds/lovebird-blue.svg","birds/lovebird-white.svg","birds/lovebird-violet.svg","birds/button-green.svg","birds/button-yellow.svg","birds/button-aqua.svg","birds/button-blue.svg","birds/button-white.svg","birds/button-violet.svg", "covers/lovebird-green.svg", "covers/lovebird-yellow.svg", "covers/lovebird-aqua.svg", "covers/lovebird-blue.svg", "covers/lovebird-white.svg", "covers/lovebird-violet.svg", "covers/button-green.svg", "covers/button-yellow.svg", "covers/button-aqua.svg", "covers/button-blue.svg", "covers/button-white.svg", "covers/button-violet.svg"];
 self.addEventListener('install', event => event.waitUntil((async () => {
