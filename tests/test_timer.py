@@ -132,6 +132,66 @@ class TimerTests(unittest.TestCase):
         self.page.locator('#active-timer').click()
         expect(self.page.locator('#timer-display')).to_have_text('00:04:31')
 
+    def seed_daily_flight_records(self):
+        self.page.evaluate("""async()=>{await mutate(s=>{
+            s.records.push({id:'today-flight-a',type:'flight',date:today(),time:'08:00',minutes:10.5,note:'',createdAt:new Date().toISOString()},
+                {id:'today-flight-b',type:'flight',date:today(),time:'09:00',minutes:20,note:'',createdAt:new Date().toISOString()},
+                {id:'past-flight',type:'flight',date:M.addDays(today(),-1),time:'08:00',minutes:90,note:'',createdAt:new Date().toISOString()},
+                {id:'today-water',type:'water',date:today(),time:'08:00',note:'',createdAt:new Date().toISOString()});
+        });render();}""")
+
+    def test_daily_total_includes_saved_and_current_once_after_reload_and_finish(self):
+        self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
+        self.seed_daily_flight_records()
+        expect(self.page.locator('#timer-daily-total')).to_be_hidden()
+        self.start()
+        expect(self.page.locator('#timer-daily-total .flight-daily-value')).to_have_text('00:30:30')
+        self.page.clock.run_for(65000)
+        expect(self.page.locator('#timer-daily-total .flight-daily-value')).to_have_text('00:31:35')
+        self.page.evaluate("location.hash='home'")
+        expect(self.page.locator('#active-timer-total .flight-daily-value')).to_have_text('00:31:35')
+        self.page.reload()
+        expect(self.page.locator('#active-timer-total .flight-daily-value')).to_have_text('00:31:35')
+        for width in (320,402):
+            self.page.set_viewport_size({'width':width,'height':874})
+            self.page.evaluate("document.documentElement.style.fontSize='28px'")
+            self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
+        self.page.evaluate("document.documentElement.style.fontSize='14px'")
+        self.page.screenshot(path='/tmp/timer-daily-total.png')
+        self.page.locator('#active-timer').click()
+        self.page.clock.run_for(55000)
+        self.page.get_by_role('button',name='放鳥を終了',exact=True).click()
+        self.page.locator('#confirm-ok').click()
+        expect(self.page.get_by_role('button',name='放鳥をはじめる',exact=True)).to_be_visible()
+        expect(self.page.locator('#timer-daily-total')).to_be_hidden()
+        self.assertEqual(len(self.records()),5)
+        self.start()
+        expect(self.page.locator('#timer-daily-total .flight-daily-value')).to_have_text('00:32:30')
+        self.assertEqual(len(self.records()),5)
+
+    def test_daily_total_keeps_growing_after_countdown_deadline_and_cancel_is_not_saved(self):
+        self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
+        self.seed_daily_flight_records()
+        self.page.get_by_role('button',name='カウントダウン',exact=True).click()
+        self.start()
+        self.page.clock.run_for(16*60000)
+        expect(self.page.locator('#timer-display')).to_have_text('00:00:00')
+        expect(self.page.locator('#timer-daily-total .flight-daily-value')).to_have_text('00:46:30')
+        self.assertEqual(len(self.records()),4)
+        self.page.get_by_role('button',name='記録せず取り消す',exact=True).click()
+        self.page.locator('#confirm-ok').click()
+        expect(self.page.get_by_role('button',name='放鳥をはじめる',exact=True)).to_be_visible()
+        self.start()
+        expect(self.page.locator('#timer-daily-total .flight-daily-value')).to_have_text('00:30:30')
+        self.assertEqual(len(self.records()),4)
+
+    def test_daily_total_retains_existing_record_date_grouping(self):
+        self.seed_daily_flight_records()
+        self.page.evaluate("async()=>{await mutate(s=>s.timer={date:M.addDays(today(),-1),startedAt:Date.now()-86400000});render();}")
+        expect(self.page.locator('#timer-daily-total .flight-daily-value')).to_have_text('00:30:30')
+        expect(self.page.locator('#timer-daily-total .flight-daily-note')).to_contain_text('開始日')
+        self.assertEqual(len(self.records()),4)
+
     def test_countup_and_reload(self):
         self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
         expect(self.page.locator('#timer-display')).to_have_text('00:00:00')

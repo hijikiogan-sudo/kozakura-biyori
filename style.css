@@ -118,3 +118,5 @@ form button[type=submit]{background:#58784e;color:#fffef4}
 /* Primary navigation is 14px normally; retain 12.25px on narrow screens so labels fit. */
 .bottom-nav a{font-size:1rem}
 @media(max-width:360px){.bottom-nav a{font-size:.875rem}}
+
+.flight-daily-total{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 9px;padding-top:9px;margin-top:6px;border-top:1px solid #c8d6b8;color:#3e5943;font-size:1rem}.flight-daily-total[hidden]{display:none}.flight-daily-value{font-size:1.15rem;font-variant-numeric:tabular-nums;letter-spacing:.02em}.flight-daily-note{font-size:.875rem;color:#52664c}.active-timer .flight-daily-total{grid-column:1/-1}.timer-scene~.flight-daily-total{margin-bottom:18px;padding:12px;border:1px solid var(--line);border-radius:16px;background:#edf3e3}
