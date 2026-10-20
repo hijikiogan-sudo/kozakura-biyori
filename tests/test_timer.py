@@ -103,20 +103,22 @@ class TimerTests(unittest.TestCase):
         self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
         self.start()
         self.page.evaluate("location.hash='home'")
-        expect(self.page.locator('.bird-action')).to_have_count(3)
-        for name, milliseconds in [('fly', 4000), ('perch', 12000), ('preen', 20000)]:
+        expect(self.page.locator('.bird-action')).to_have_count(9)
+        actions = ['fly', 'perch', 'preen', 'curious', 'stretch', 'puff', 'hop', 'sleep', 'paper']
+        for index, name in enumerate(actions):
+            milliseconds = index*8000+4000
             self.page.evaluate("""(milliseconds)=>{
                 document.querySelector('.active-timer-bird').getAnimations({subtree:true}).forEach(a=>{a.pause();a.currentTime=milliseconds;});
             }""", milliseconds)
             expect(self.page.locator('.bird-action-'+name)).to_have_css('opacity', '1')
-            for other in {'fly', 'perch', 'preen'}-{name}:
+            for other in set(actions)-{name}:
                 expect(self.page.locator('.bird-action-'+other)).to_have_css('opacity', '0')
             self.page.locator('#active-timer').screenshot(path='/tmp/timer-bird-'+name+'.png')
         expect(self.page.locator('#active-timer-value')).to_have_text('00:00:00')
         self.assertEqual(self.records(), [])
         self.page.emulate_media(reduced_motion='reduce')
         expect(self.page.locator('.bird-action-perch')).to_have_css('opacity', '1')
-        for selector in ['.bird-action', '.bird-preen-head', '.flight-bob', '.flight-wing']:
+        for selector in ['.bird-action', '.bird-gesture', '.flight-bob', '.flight-wing']:
             for node in self.page.locator(selector).all():
                 expect(node).to_have_css('animation-name', 'none')
 

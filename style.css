@@ -85,12 +85,26 @@ form button[type=submit]{background:#58784e;color:#fffef4}
 @keyframes flight-flap{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(18deg)}}
 @media(prefers-reduced-motion:reduce){.flight-bob,.flight-wing{animation:none}}
 
-/* Three unhurried moments: fly, perch, then preen. One shared 24s cycle. */
-.bird-action{opacity:0;animation-duration:24s;animation-timing-function:linear;animation-iteration-count:infinite}
-.bird-action-fly{animation-name:bird-show-flight}.bird-action-perch{animation-name:bird-show-perch}.bird-action-preen{animation-name:bird-show-preen}
+/* Nine quiet moments, eight seconds each. Negative delays keep one shared cycle. */
+.bird-action{opacity:0;animation:bird-show-action 72s linear infinite}
+.bird-action-perch{animation-delay:-64s}.bird-action-preen{animation-delay:-56s}.bird-action-curious{animation-delay:-48s}.bird-action-stretch{animation-delay:-40s}.bird-action-puff{animation-delay:-32s}.bird-action-hop{animation-delay:-24s}.bird-action-sleep{animation-delay:-16s}.bird-action-paper{animation-delay:-8s}
+@keyframes bird-show-action{0%,10%{opacity:1}11.111%,98.889%{opacity:0}100%{opacity:1}}
 .bird-preen-head{transform-origin:65px 52px;animation:bird-preen 2.4s ease-in-out infinite}
-@keyframes bird-show-flight{0%,29%,100%{opacity:1}32%,97%{opacity:0}}
-@keyframes bird-show-perch{0%,29%,65%,100%{opacity:0}32%,62%{opacity:1}}
-@keyframes bird-show-preen{0%,62%,100%{opacity:0}65%,97%{opacity:1}}
+.bird-curious-head{transform-origin:68px 50px;animation:bird-curious 4s ease-in-out infinite}
+.bird-stretch-wing{transform-origin:61px 62px;animation:bird-stretch 4s ease-in-out infinite}
+.bird-puff-body{transform-origin:60px 80px;animation:bird-puff 4s ease-in-out infinite}
+.bird-hop-body{animation:bird-hop 4s ease-in-out infinite}
+.bird-sleep-head{transform-origin:68px 50px;animation:bird-sleep 4s ease-in-out infinite}
+.bird-paper-head{transform-origin:68px 50px;animation:bird-nibble 2s ease-in-out infinite}
+.bird-paper-strip{transform-origin:100px 47px;animation:bird-paper-tug 2s ease-in-out infinite}
+.bird-paper-crumbs{animation:bird-paper-fall 2s ease-out infinite}
 @keyframes bird-preen{0%,100%{transform:rotate(40deg)}50%{transform:rotate(58deg)}}
-@media(prefers-reduced-motion:reduce){.bird-action,.bird-preen-head{animation:none}.bird-action-fly,.bird-action-preen{opacity:0}.bird-action-perch{opacity:1}}
+@keyframes bird-curious{0%,20%,100%{transform:rotate(0)}40%,60%{transform:rotate(-22deg)}80%{transform:rotate(12deg)}}
+@keyframes bird-stretch{0%,100%{transform:rotate(-5deg)}40%,65%{transform:rotate(12deg)}}
+@keyframes bird-puff{0%,20%,80%,100%{transform:scale(1)}35%{transform:scale(1.12,1.08) rotate(-3deg)}42%{transform:scale(1.12,1.08) rotate(3deg)}49%{transform:scale(1.12,1.08) rotate(-3deg)}56%,65%{transform:scale(1.12,1.08)}}
+@keyframes bird-hop{0%,15%,100%{transform:translate(0,0)}25%{transform:translate(-5px,-9px)}35%,50%{transform:translate(-10px,0)}60%{transform:translate(0,-9px)}70%,85%{transform:translate(10px,0)}92%{transform:translate(5px,-7px)}}
+@keyframes bird-sleep{0%,100%{transform:rotate(0)}45%,65%{transform:rotate(18deg) translateY(2px)}}
+@keyframes bird-nibble{0%,50%,100%{transform:rotate(0)}20%,70%{transform:rotate(7deg)}}
+@keyframes bird-paper-tug{0%,50%,100%{transform:rotate(0)}25%,75%{transform:rotate(-12deg)}}
+@keyframes bird-paper-fall{0%,35%{opacity:0;transform:translateY(-3px)}50%{opacity:1}100%{opacity:0;transform:translateY(12px)}}
+@media(prefers-reduced-motion:reduce){.bird-action,.bird-gesture{animation:none}.bird-action{opacity:0}.bird-action-perch{opacity:1}}
