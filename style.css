@@ -109,3 +109,8 @@ form button[type=submit]{background:#58784e;color:#fffef4}
 @media(prefers-reduced-motion:reduce){.bird-gesture{animation:none}}
 
 .app-update[hidden]{display:none}.app-update{margin:10px 0 16px}.app-update p{font-size:.875rem;margin-bottom:10px}
+
+.timer-action-toggle,.timer-action-choice{display:flex;align-items:center;gap:10px;min-height:52px;margin:0;cursor:pointer}.timer-action-toggle input,.timer-action-choice input{width:22px;height:22px;flex-shrink:0;accent-color:#58784e}
+.timer-action-preview{text-align:center}.timer-action-preview>.active-timer-bird{display:block;width:140px;height:130px;margin:auto}.timer-action-preview p{margin-bottom:0}
+.timer-action-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.timer-action-choice{border:1px solid var(--line);border-radius:16px;padding:8px;background:#f3f6e9;font-size:.93rem}.timer-action-choice:has(input:checked){background:#e6efdb;border-color:#92ab7c}.timer-action-choice span{overflow-wrap:anywhere}.action-selection-error{color:#975235;font-size:.93rem;margin:12px 0 0}
+.active-timer-bird.motion-off .bird-gesture,.active-timer-bird.motion-off .flight-bob,.active-timer-bird.motion-off .flight-wing{animation:none}
