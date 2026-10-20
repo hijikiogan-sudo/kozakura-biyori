@@ -1,6 +1,6 @@
 'use strict';
 const APP = 'kozakura-biyori', DB = 'kozakura-biyori-local-v1';
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 const $ = id => document.getElementById(id);
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const uid = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -324,7 +324,7 @@ function checkAppUpdate(){
   };
   controller.postMessage({type:'GET_APP_VERSION'},[channel.port2]);
 }
-async function offlineSetup(){const status=$('offline-status');if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{checkAppUpdate();const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.7.0')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
+async function offlineSetup(){const status=$('offline-status');if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{checkAppUpdate();const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.7.1')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
 async function init(){try {db=await openDB();await mutate(()=>{});state=await readState();render();offlineSetup();}catch(e){$('main').replaceChildren(...title('保存領域を開けませんでした','記録を保存できる環境で開き直してください。'),el('div',{class:'notice'},errorMessage(e)));}}
 
 // v1.1 interface. Data stays in the v1 database; nothing is sent to a server.
@@ -417,7 +417,7 @@ function homeCover(p,preview=false){
   }
   return hero;
 }
-function home(){const p=state.profile;return [el('div',{class:'section-title home-appearance'},el('div',{class:'home-date'},prettyDate(today())),el('button',{class:'text-button',onclick:()=>go('appearance')},icon('bird'),'イラスト変更')),homeCover(p),el('section',{class:'health-section'},sectionTitle('今日の健康チェック',el('button',{class:'text-button',onclick:()=>{selectedDate=today();recordForm('health',todayHealth());}},todayHealth()?'今日の記録を編集':'記録する')),healthStrip()),el('button',{class:'flight-start',onclick:()=>go('timer')},icon('bird'),state.timer?'放鳥タイマーへ':'放鳥スタート'),el('div',{class:'quick-grid'},actionTile('weight','体重記録','','weight'),actionTile('behavior','行動記録','','behavior'),actionTile('camera','写真アルバム','','album'),actionTile('calendar','カレンダー','お世話の記録','calendar')),careScheduleCard(),card(sectionTitle('最近の記録',el('a',{href:'#records'},'すべて →')),recordList(sortedRecords().slice(0,4)))];}
+function home(){const p=state.profile;return [el('div',{class:'section-title home-appearance'},el('div',{class:'home-date'},prettyDate(today())),el('button',{class:'text-button',onclick:()=>go('appearance')},icon('bird'),'イラスト変更')),homeCover(p),el('button',{class:'flight-start',onclick:()=>go('timer')},icon('bird'),state.timer?'放鳥タイマーへ':'放鳥スタート'),el('section',{class:'health-section'},sectionTitle('今日の健康チェック',el('button',{class:'text-button',onclick:()=>{selectedDate=today();recordForm('health',todayHealth());}},todayHealth()?'今日の記録を編集':'記録する')),healthStrip()),el('div',{class:'quick-grid'},actionTile('weight','体重記録','','weight'),actionTile('behavior','行動記録','','behavior'),actionTile('camera','写真アルバム','','album'),actionTile('calendar','カレンダー','お世話の記録','calendar')),careScheduleCard(),card(sectionTitle('最近の記録',el('a',{href:'#records'},'すべて →')),recordList(sortedRecords().slice(0,4)))];}
 async function timerAction(action){if(timerActionPending)return;timerActionPending=true;try{await action();}finally{timerActionPending=false;}}
 async function toggleTimer(){await timerAction(performTimerToggle);}
 async function cancelTimer(){await timerAction(async()=>{
