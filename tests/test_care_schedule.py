@@ -28,7 +28,7 @@ class CareScheduleTests(unittest.TestCase):
  def test_setup_two_daily_times_record_backup_export_and_offline(self):
   self.configure();self.page.goto(self.base+'#home')
   expect(self.page.locator('#care-schedule-list li')).to_have_count(4)
-  self.page.get_by_role('button',name='08:00の水替えを記録',exact=True).click();self.page.locator('#confirm-ok').click()
+  self.page.get_by_role('button',name='08:00の水替えを記録',exact=True).click()
   expect(self.page.get_by_role('button',name='08:00の水替えは実施済み',exact=True)).to_be_disabled()
   expect(self.page.get_by_role('button',name='18:00の水替えを記録',exact=True)).to_be_enabled()
   self.page.reload();expect(self.page.get_by_role('button',name='08:00の水替えは実施済み',exact=True)).to_be_disabled()
