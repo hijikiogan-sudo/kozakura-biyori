@@ -107,3 +107,5 @@ form button[type=submit]{background:#58784e;color:#fffef4}
 @keyframes bird-paper-tug{0%,50%,100%{transform:rotate(0)}25%,75%{transform:rotate(-12deg)}}
 @keyframes bird-paper-fall{0%,35%{opacity:0;transform:translateY(-3px)}50%{opacity:1}100%{opacity:0;transform:translateY(12px)}}
 @media(prefers-reduced-motion:reduce){.bird-gesture{animation:none}}
+
+.app-update[hidden]{display:none}.app-update{margin:10px 0 16px}.app-update p{font-size:.875rem;margin-bottom:10px}
