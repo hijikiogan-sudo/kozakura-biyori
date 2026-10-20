@@ -179,5 +179,54 @@ class TimerTests(unittest.TestCase):
         expect(self.page.locator('#toast')).to_contain_text('終了音を鳴らしました')
 
 
+    def install_native_bridge(self, permission='granted', fail=False):
+        import json
+        script = """(() => {
+          window.nativeCalls=[];
+          const permission=PERMISSION, fail=FAIL;
+          window.KozabotaNativeNotifications={
+            async getPermission(){return permission;},
+            async requestPermission(){nativeCalls.push(['permission']);return permission;},
+            async replaceTimerNotification(request){if(fail)throw Error('OS failure');nativeCalls.push(['replace',request]);},
+            async cancelTimerNotification(request){nativeCalls.push(['cancel',request]);}
+          };
+        })();""".replace('PERMISSION',json.dumps(permission)).replace('FAIL',json.dumps(fail))
+        self.page.add_init_script(script)
+        self.page.reload()
+        expect(self.page.locator('#timer-display')).to_be_visible()
+
+    def test_native_bridge_start_restore_and_cancel_without_changing_timer_data(self):
+        self.install_native_bridge()
+        self.page.get_by_role('button',name='カウントダウン',exact=True).click()
+        self.start()
+        expect(self.page.locator('#native-timer-status')).to_contain_text('端末に予約しました')
+        requests=self.page.evaluate("nativeCalls.filter(c=>c[0]==='replace').map(c=>c[1])")
+        timer=self.page.evaluate('state.timer')
+        self.assertEqual(requests[0]['deadline'],timer['startedAt']+timer['durationSeconds']*1000)
+        self.assertEqual(set(requests[0]),{'id','deadline','title','body','sound'})
+        self.assertEqual(self.page.evaluate("nativeCalls.filter(c=>c[0]==='permission').length"),1)
+        self.page.reload()
+        expect(self.page.locator('#native-timer-status')).to_contain_text('端末に予約しました')
+        self.assertEqual(self.page.evaluate("nativeCalls.find(c=>c[0]==='replace')[1].deadline"),requests[0]['deadline'])
+        self.assertEqual(self.page.evaluate("nativeCalls.filter(c=>c[0]==='permission').length"),0)
+        self.page.get_by_role('button',name='記録せず取り消す',exact=True).click()
+        self.page.locator('#confirm-ok').click()
+        expect(self.page.get_by_role('button',name='放鳥をはじめる',exact=True)).to_be_visible()
+        self.page.wait_for_function("nativeCalls.at(-1)[0]==='cancel'")
+        self.assertEqual(self.records(),[])
+
+    def test_native_denial_and_schedule_failure_do_not_prevent_recording(self):
+        for permission,fail,message in [('denied',False,'許可されていません'),('granted',True,'できませんでした')]:
+            with self.subTest(permission=permission):
+                self.install_native_bridge(permission,fail)
+                self.page.get_by_role('button',name='カウントダウン',exact=True).click()
+                self.start()
+                expect(self.page.locator('#native-timer-status')).to_contain_text(message)
+                self.page.clock.fast_forward(60000)
+                self.page.get_by_role('button',name='放鳥を終了',exact=True).click()
+                self.page.locator('#confirm-ok').click()
+                expect(self.page.get_by_role('button',name='放鳥をはじめる',exact=True)).to_be_visible()
+        self.assertEqual(len(self.records()),2)
+
 if __name__ == '__main__':
     unittest.main()
