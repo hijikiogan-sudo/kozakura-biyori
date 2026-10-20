@@ -100,7 +100,7 @@ class BehaviorTests(unittest.TestCase):
         self.assertEqual(self.page.evaluate('(async()=> (await readState()).records.length)()'),1)
 
     def test_bird_selection_persists_offline_and_in_exported_backup(self):
-        self.page.get_by_role('button',name='インコのイラストを選ぶ',exact=True).click()
+        self.page.get_by_role('button',name='イラスト変更',exact=True).click()
         expect(self.page.locator('input[name=bird-appearance]')).to_have_count(12)
         self.page.get_by_role('radio',name='ボタンインコ・ブルー',exact=True).check()
         expect(self.page.locator('.appearance-preview use')).to_have_attribute('href','./art.svg#button-blue-pose-0')
