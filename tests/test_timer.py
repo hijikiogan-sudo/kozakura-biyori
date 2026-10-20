@@ -1,6 +1,6 @@
 """Browser regression checks. Run: python3 -m unittest discover -s tests -v"""
 import functools
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import shutil
@@ -55,6 +55,7 @@ class TimerTests(unittest.TestCase):
         return self.page.evaluate('(async () => (await readState()).records)()')
 
     def test_countup_and_reload(self):
+        self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
         expect(self.page.locator('#timer-display')).to_have_text('00:00:00')
         self.start()
         self.page.clock.fast_forward(65000)
@@ -118,7 +119,10 @@ class TimerTests(unittest.TestCase):
 
     def test_offline_countdown(self):
         expect(self.page.locator('#offline-status')).to_have_text('オフライン準備完了', timeout=30000)
-        self.page.wait_for_function('navigator.serviceWorker.controller !== null')
+        self.page.evaluate("""async () => {
+            if (navigator.serviceWorker.controller) return;
+            await new Promise(resolve => navigator.serviceWorker.addEventListener('controllerchange', resolve, {once:true}));
+        }""")
         self.page.get_by_role('button', name='カウントダウン', exact=True).click()
         self.page.get_by_role('button', name='30分', exact=True).click()
         self.start()
