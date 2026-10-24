@@ -120,4 +120,4 @@ class Phase2UXTests(unittest.TestCase):
    for route in ['home','weight','behavior','calendar','album','appearance']:
     self.page.goto(self.base+'#'+route);self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth<=innerWidth'),(width,route))
     self.page.evaluate("document.documentElement.style.fontSize='28px'");self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth<=innerWidth'),(width,route,'large text'));self.page.evaluate("document.documentElement.style.fontSize=''")
-  self.assertEqual(self.page.evaluate('state.settings.birdAppearance'),'button-blue')
+  self.assertEqual(self.page.evaluate('state.profile.appearance'),'button-blue')

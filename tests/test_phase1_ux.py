@@ -107,7 +107,7 @@ class Phase1UXTests(unittest.TestCase):
     const a=M.validateBackup({app:APP,version:1,data:raw}),b=M.validateBackup({app:APP,version:2,data:raw});
     return {raw:raw.records,a:a.records,b:b.records,graph:M.chartData(a.records,'droppings',7).map(d=>d.value)};
   }""")
-  self.assertEqual(result['a'],result['raw']);self.assertEqual(result['b'],result['raw']);self.assertEqual(result['graph'],[1,2,3,None])
+  owned=[{**r,'birdId':'bird-1'} for r in result['raw']];self.assertEqual(result['a'],owned);self.assertEqual(result['b'],owned);self.assertEqual(result['graph'],[1,2,3,None])
  def test_offline_care_and_undo_preserve_records(self):
   expect(self.page.locator('#offline-status')).to_have_text('オフライン準備完了')
   self.page.evaluate("""async()=>{if(!navigator.serviceWorker.controller)await new Promise(resolve=>navigator.serviceWorker.addEventListener('controllerchange',resolve,{once:true}));}""")
