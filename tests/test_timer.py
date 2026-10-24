@@ -83,7 +83,7 @@ class TimerTests(unittest.TestCase):
 
     def test_active_card_countdown_and_selected_bird(self):
         self.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
-        self.page.evaluate("(async()=>{await save(s=>s.settings.birdAppearance='button-blue','')})()")
+        self.page.evaluate("(async()=>{await save(s=>s.profile.appearance='button-blue','')})()")
         self.page.get_by_role('button', name='カウントダウン', exact=True).click()
         self.start()
         self.page.evaluate("location.hash='home'")

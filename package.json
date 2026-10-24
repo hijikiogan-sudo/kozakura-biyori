@@ -1,6 +1,6 @@
 {
   "name": "kozakura-biyori",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "private": true,
   "description": "コザボタ日和 iOS app shell. The web app itself has no build step; see scripts/build_www.mjs.",
   "scripts": {

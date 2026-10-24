@@ -45,9 +45,33 @@ class MediaStoreTests(unittest.TestCase):
         self.page.goto(self.base + 'bird.svg')
         raw = self.dump()
         self.assertEqual(raw['version'], 2)
-        self.assertEqual(raw['media'], {'profile': JPEG, 'photo:old-photo': JPEG})
+        self.assertEqual(raw['media'], {'bird:bird-1': JPEG, 'photo:old-photo': JPEG})
         self.assertEqual(raw['data']['state']['photos'][0]['data'], 'media:photo:old-photo')
-        self.assertEqual(raw['data']['state']['profile']['photo'], 'media:profile')
+        self.assertEqual(raw['data']['state']['birds'][0]['photo'], 'media:bird:bird-1')
+        self.assertNotIn('profile', raw['data']['state'])
+
+    def test_v2_single_profile_becomes_first_bird_and_keeps_its_photo(self):
+        # v1.11/v1.12 stored one profile with its photo under the "profile" media key.
+        self.page.goto(self.base + 'bird.svg')
+        self.page.evaluate('''jpeg=>new Promise((ok,ng)=>{const r=indexedDB.open('kozakura-biyori-local-v1',2);
+            r.onupgradeneeded=()=>{r.result.createObjectStore('data');r.result.createObjectStore('media');};
+            r.onsuccess=()=>{const db=r.result;const tx=db.transaction(['data','media'],'readwrite');
+              tx.objectStore('media').put(jpeg,'profile');
+              tx.objectStore('data').put({profile:{name:'v2の合成プロフィール',photo:'media:profile'},records:[{id:'v2-weight',type:'weight',date:'2026-10-01',value:50,note:'',createdAt:'2026-10-01T00:00:00Z'}],
+                photos:[],timer:null,lastBackup:null,settings:{birdAppearance:'button-yellow'}},'state');
+              tx.oncomplete=()=>{db.close();ok();};tx.onerror=()=>ng(tx.error);};})''', JPEG)
+        self.page.goto(self.base + '#home')
+        expect(self.page.locator('main')).to_contain_text('v2の合成プロフィール')
+        state = self.page.evaluate('async()=>{const s=await readState();return [s.birds.length,s.profile.name,s.profile.photo,s.profile.appearance,s.records[0].birdId];}')
+        self.assertEqual(state, [1, 'v2の合成プロフィール', JPEG, 'button-yellow', 'bird-1'])
+        # The first save moves the photo to the per-bird key and drops the old one.
+        self.page.evaluate("async()=>{await mutate(s=>{s.records.push({id:'after',type:'note',date:today(),note:'合成',createdAt:new Date().toISOString()});});}")
+        self.page.close()
+        self.page = self.context.new_page()
+        self.page.goto(self.base + 'bird.svg')
+        raw = self.dump()
+        self.assertEqual(raw['media'], {'bird:bird-1': JPEG})
+        self.assertEqual(raw['data']['state']['birds'][0]['photo'], 'media:bird:bird-1')
 
     def test_records_do_not_rewrite_media_and_deleted_media_is_removed(self):
         self.page.goto(self.base + '#home')
