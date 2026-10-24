@@ -38,7 +38,7 @@ iOS用の起動処理から、`app.js` が実行される前に `window.Kozabota
 
 ## データを引き継ぐ
 
-公開URL `https://hijikiogan-sudo.github.io/kozakura-biyori/`、IndexedDB名 `kozakura-biyori-local-v1`、バックアップ識別子 `kozakura-biyori` を維持する。ただしSafari/PWAとネイティブのWKWebViewは保存領域を自動共有しない。App Store版への移行には既存のv2バックアップ書き出し・復元を用意し、写真・記録・設定・進行中タイマーの移行を実機確認する。PWAの削除を移行手順にしない。
+公開URL `https://hijikiogan-sudo.github.io/kozakura-biyori/`、IndexedDB名 `kozakura-biyori-local-v1`（v1.11.0からDBバージョン2、写真・動画は `media` ストア）、バックアップ識別子 `kozakura-biyori` を維持する。ただしSafari/PWAとネイティブのWKWebViewは保存領域を自動共有しない。App Store版への移行には既存のv2バックアップ書き出し・復元を用意し、写真・記録・設定・進行中タイマーの移行を実機確認する。PWAの削除を移行手順にしない。
 
 ## iOS実装時に残る作業
 
@@ -52,3 +52,7 @@ iOS用の起動処理から、`app.js` が実行される前に `window.Kozabota
 ## お世話スケジュールの接続（v1.5.0）
 
 `settings.reminders` の `startDate`・`interval`・`time`・`extraTimes` が予定の正本。`model.js` の `nextCareDate`・`reminderTimes` から通知候補を生成できる。現時点で `platform.js` のiOSブリッジは放鳥タイマー専用で、お世話のOS通知予約は行わない。iOS実装時にはタイマーID104001とは別の専用ID範囲で、複数時刻・日数間隔・予定変更/無効化/復元・OSの予約件数上限を扱う。開始日からの位相を維持し、起動時に予約を照合する。単純な毎日の繰り返しだけで「3日おき」を代用しない。
+
+## 受診用レポートの印刷（v1.11.0）
+
+PWAでは `window.print()` で印刷・PDF保存を行う。WKWebViewでは `window.print()` が動作しないため、iOS版では `UIPrintInteractionController`（またはWKWebViewの印刷フォーマッタ）につなぐブリッジが必要。CSVはファイル書き出しと同じく共有シートに渡す。

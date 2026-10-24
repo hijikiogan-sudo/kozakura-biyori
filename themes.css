@@ -1,0 +1,44 @@
+/* Selectable page backgrounds (settings.background). Hand-written: not part of the dark.css generator.
+   Colored light backgrounds are pale tints of the bird illustration colors; dark ones are deep tints of the same hues.
+   The attribute rules also color the picker swatches, so they apply to any element, not only :root.
+   data-mode (set by mode.js) is the mode actually shown: the device setting or the in-app override. */
+[data-bg-light=default]{--bg-l:#fafbf2;--glow-l:#fffef4}
+[data-bg-light=green]{--bg-l:#e2eedc;--glow-l:#f4f9f0}
+[data-bg-light=yellow]{--bg-l:#f8efcc;--glow-l:#fdf9e8}
+[data-bg-light=aqua]{--bg-l:#dbeee8;--glow-l:#f0f8f5}
+[data-bg-light=blue]{--bg-l:#dde8f4;--glow-l:#f1f6fb}
+[data-bg-light=white]{--bg-l:#ededea;--glow-l:#f9f9f7}
+[data-bg-light=violet]{--bg-l:#e7e1f2;--glow-l:#f6f3fa}
+[data-bg-dark=default]{--bg-d:#2a2b22;--glow-d:#2c2b1c}
+[data-bg-dark=green]{--bg-d:#1e2a22;--glow-d:#25332a}
+[data-bg-dark=yellow]{--bg-d:#2b2717;--glow-d:#35301e}
+[data-bg-dark=aqua]{--bg-d:#1a2a28;--glow-d:#213431}
+[data-bg-dark=blue]{--bg-d:#1b2331;--glow-d:#232c3c}
+[data-bg-dark=white]{--bg-d:#232323;--glow-d:#2c2c2c}
+[data-bg-dark=violet]{--bg-d:#25202f;--glow-d:#2f283a}
+
+@media screen{
+  :root[data-mode=light]:not([data-bg-light=default])[data-bg-light],:root[data-mode=light]:not([data-bg-light=default])[data-bg-light] body{background:var(--bg-l)}
+  :root[data-mode=light]:not([data-bg-light=default])[data-bg-light] .app-shell{background:radial-gradient(ellipse at 70% 0,var(--glow-l) 0,transparent 35%),var(--bg-l)}
+  :root[data-mode=light]:not([data-bg-light=default])[data-bg-light] .bottom-nav{background:color-mix(in srgb,var(--bg-l) 96%,transparent)}
+}
+@media screen{
+  :root[data-mode=dark]:not([data-bg-dark=default])[data-bg-dark],:root[data-mode=dark]:not([data-bg-dark=default])[data-bg-dark] body{background:var(--bg-d)}
+  :root[data-mode=dark]:not([data-bg-dark=default])[data-bg-dark] .app-shell{background:radial-gradient(ellipse at 70% 0,var(--glow-d) 0,transparent 35%),var(--bg-d)}
+  :root[data-mode=dark]:not([data-bg-dark=default])[data-bg-dark] .bottom-nav{background:color-mix(in srgb,var(--bg-d) 96%,transparent)}
+  /* Cards and tiles take a lifted shade of the chosen hue instead of the default warm dark. */
+  :root[data-mode=dark]:not([data-bg-dark=default])[data-bg-dark] :is(.card,.health-cell,.action-tile,.menu-list,.latest-weight,.care-check,.bird-choice,.speech,.profile-wave,.notice){background:color-mix(in srgb,var(--bg-d),#fff 7%)}
+  :root[data-mode=dark]:not([data-bg-dark=default])[data-bg-dark] :is(.card,.health-cell,.action-tile,.menu-list,.care-check){border-color:color-mix(in srgb,var(--bg-d),#fff 14%)}
+}
+
+.bg-group{border:1px solid var(--line);border-radius:24px;padding:12px;margin:16px 0;min-width:0}
+.bg-group legend{font-weight:600;padding:0 6px}
+.bg-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.bg-choice{position:relative;margin:0;padding:10px 2px 8px;border:2px solid transparent;border-radius:18px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;text-align:center;min-width:0;min-height:44px;cursor:pointer}
+.bg-choice input[type=radio]{position:absolute;opacity:0;pointer-events:none}
+.bg-choice:has(input:checked){border-color:#7f9e76}
+.bg-choice:has(input:focus-visible){outline:3px solid #cf9d64;outline-offset:2px}
+.bg-swatch{width:38px;height:38px;border-radius:50%;border:1px solid #00000022}
+.bg-swatch.light{background:var(--bg-l)}
+.bg-swatch.dark{background:var(--bg-d)}
+.bg-choice small{font-size:10px;color:var(--muted);line-height:1.3}
