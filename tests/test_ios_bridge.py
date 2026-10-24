@@ -117,6 +117,9 @@ class IOSBridgeTests(unittest.TestCase):
         expect(main).to_contain_text('アプリを閉じていてもiPhoneの通知でお知らせします')
         expect(main).not_to_contain_text('カレンダー')
         expect(self.page.locator('html')).to_have_class('native')
+        self.open('about')
+        expect(main).not_to_contain_text('ホーム画面に追加')
+        expect(main).to_contain_text('アプリを削除すると、記録や写真も消えます')
 
     def test_files_go_to_share_sheet_and_print_is_hidden(self):
         self.open('backup')
