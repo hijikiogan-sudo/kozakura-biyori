@@ -1,0 +1,24 @@
+:root{--green:#406553;--bg:#f7f6ef;--card:#fff;--text:#2f3a34;--muted:#5f6b64;--line:#dfe3d8;--mark:#fff3b0}
+@media (prefers-color-scheme:dark){:root{--green:#9cc7ae;--bg:#1d2320;--card:#262e2a;--text:#e8ece8;--muted:#a9b4ad;--line:#38423d;--mark:#5a4d12}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;font-size:16px;line-height:1.8;-webkit-text-size-adjust:100%}
+.wrap{max-width:720px;margin:0 auto;padding:24px 16px 64px}
+header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+header img{width:40px;height:40px}
+header a{color:var(--green);font-weight:700;text-decoration:none}
+h1{font-size:1.5rem;line-height:1.4;margin:16px 0 4px;color:var(--green)}
+.meta{color:var(--muted);font-size:.875rem;margin:0 0 24px}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 20px 12px;margin:0 0 14px}
+h2{font-size:1.1rem;margin:16px 0 6px}
+h3{font-size:1rem;margin:14px 0 4px}
+p,ul,ol{margin:6px 0 10px}
+ul,ol{padding-left:1.3em}
+li{margin:2px 0}
+a{color:var(--green)}
+mark{background:var(--mark);color:inherit;padding:0 3px;border-radius:3px}
+details{border-top:1px solid var(--line);padding:10px 0}
+details:first-of-type{border-top:0}
+summary{font-weight:700;cursor:pointer;min-height:44px;display:flex;align-items:center}
+.lead{font-size:1.05rem}
+nav.links{display:flex;flex-wrap:wrap;gap:8px 16px;margin:24px 0 0;font-size:.95rem}
+footer{color:var(--muted);font-size:.8rem;margin-top:24px;text-align:center}

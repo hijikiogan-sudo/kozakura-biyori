@@ -137,3 +137,4 @@ form button[type=submit]{background:#58784e;color:#fffef4}
 #home-shortcuts .action-tile{min-width:0}#home-shortcuts strong{overflow-wrap:anywhere;line-height:1.5}
 .latest-care{margin:0 0 14px;padding:10px 12px;border-radius:14px;background:#f5f7eb;color:#526448;font-size:.875rem;line-height:1.7}
 .latest-care>div{display:flex;flex-wrap:wrap;justify-content:space-between;gap:0 10px;padding:3px 0}.latest-care dt{font-weight:600}.latest-care dd{margin:0;overflow-wrap:anywhere}
+.menu-links{display:flex;flex-direction:column;gap:2px;margin:0}.menu-links a{display:flex;align-items:center;min-height:44px;font-size:14px}
