@@ -86,6 +86,25 @@ class StoreReadinessTests(unittest.TestCase):
         expect(self.page.get_by_role('button', name='CSVで書き出す')).to_be_hidden()
         self.assertTrue(self.page.locator('main details').evaluate('d=>d.open'))
 
+    def test_background_color_choice_applies_per_mode_and_persists(self):
+        self.page.emulate_media(color_scheme='light')
+        self.open('settings')
+        self.page.get_by_role('button', name='背景の色').click()
+        page_bg = lambda: self.page.evaluate("getComputedStyle(document.body).backgroundColor")
+        before = page_bg()
+        self.page.get_by_label('ライトモード・アクア').check(force=True)
+        expect(self.page.locator('#toast')).to_contain_text('背景の色を変更しました')
+        self.page.get_by_label('ダークモード・ブルー').check(force=True)
+        self.assertEqual(self.page.evaluate('async()=>(await readState()).settings.background'), {'light': 'aqua', 'dark': 'blue'})
+        self.assertEqual(page_bg(), 'rgb(219, 238, 232)')
+        self.assertNotEqual(page_bg(), before)
+        self.page.reload()
+        expect(self.page.locator('main')).not_to_contain_text('記録をひらいています')
+        self.assertEqual(self.page.evaluate('[document.documentElement.dataset.bgLight,document.documentElement.dataset.bgDark]'), ['aqua', 'blue'])
+        self.page.emulate_media(color_scheme='dark')
+        self.assertEqual(page_bg(), 'rgb(27, 35, 49)')
+        self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
+
 
 if __name__ == '__main__':
     unittest.main()

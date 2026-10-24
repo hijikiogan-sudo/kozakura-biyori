@@ -37,3 +37,11 @@ test('CSV is chronological, escaped and safe to open in spreadsheets',()=>{
  assert.equal(lines[1],'2026-10-01,07:30,体重,48 g,"\'=HYPERLINK(""x"")"');
  assert.equal(lines[2],'2026-10-02,,メモ,,"元気, ""少し"""');
 });
+test('background choices default, survive normalize and reject unknown colors in backups',()=>{
+ assert.deepEqual(M.blank().settings.background,{light:'default',dark:'default'});
+ assert.deepEqual(M.normalize({settings:{background:{light:'aqua',dark:'nope'}}}).settings.background,{light:'aqua',dark:'default'});
+ assert.deepEqual(M.normalize({settings:{}}).settings.background,{light:'default',dark:'default'});
+ const backup=background=>({app:'kozakura-biyori',version:2,data:{...M.blank(),settings:{...M.blank().settings,background}}});
+ assert.doesNotThrow(()=>M.validateBackup(backup({light:'violet',dark:'white'})));
+ assert.throws(()=>M.validateBackup(backup({light:'red'})),/背景の色/);
+});
