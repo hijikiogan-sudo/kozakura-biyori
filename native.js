@@ -4,6 +4,8 @@
 (() => {
   const C = window.Capacitor;
   if (!C?.isNativePlatform?.()) return;
+  // The app draws under the status bar (viewport-fit=cover); style.css keeps content clear of it under .native.
+  document.documentElement.classList.add('native');
   const {LocalNotifications, Filesystem, Share} = C.Plugins;
   const CARE_IDS = [200000, 210000];
   const permission = display => display === 'granted' ? 'granted' : display === 'denied' ? 'denied' : 'prompt';

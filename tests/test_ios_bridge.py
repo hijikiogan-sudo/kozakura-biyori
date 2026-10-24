@@ -104,6 +104,20 @@ class IOSBridgeTests(unittest.TestCase):
         self.page.wait_for_timeout(100)
         self.assertEqual([n for n in self.native()['pending'] if n['id'] == 104001], [])
 
+    def test_ios_screens_do_not_point_to_the_calendar_workaround(self):
+        self.open('settings')
+        main = self.page.locator('main')
+        expect(main).to_contain_text('ご飯替え・水替え・掃除をiPhoneに通知')
+        expect(main).not_to_contain_text('カレンダー登録')
+        expect(main).not_to_contain_text('印刷/PDF')
+        self.open('reminders')
+        expect(main).not_to_contain_text('カレンダー')
+        self.open('timer')
+        self.page.get_by_role('button', name='カウントダウン', exact=True).click()
+        expect(main).to_contain_text('アプリを閉じていてもiPhoneの通知でお知らせします')
+        expect(main).not_to_contain_text('カレンダー')
+        expect(self.page.locator('html')).to_have_class('native')
+
     def test_files_go_to_share_sheet_and_print_is_hidden(self):
         self.open('backup')
         self.page.get_by_role('button', name='バックアップを書き出す').click()
