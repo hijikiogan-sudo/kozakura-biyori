@@ -234,6 +234,22 @@ const KozakuraModel = (() => {
     }
     return tasks.sort((a,b)=>a.time.localeCompare(b.time)||CARE.indexOf(a.type)-CARE.indexOf(b.type));
   }
+  // Upcoming care reminders for the iOS app's local notifications. iOS keeps at most 64 pending per app, so the
+  // plan covers a rolling window that the app refreshes on every launch and save. Slots already done are skipped.
+  // IDs are stable per date/type/time so rescheduling replaces notifications instead of duplicating them.
+  function careNotificationPlan(reminders,records,now=new Date(),{days=14,limit=60}={}){
+    const out=[],first=date(now);
+    for(let i=0;i<days;i++){
+      const day=addDays(first,i),dayIndex=dayDistance(day,'2000-01-01');
+      for(const task of careTasks(reminders,records,day)){
+        const at=new Date(`${day}T${task.time}:00`).getTime();
+        if(task.done||at<=now.getTime())continue;
+        const slot=reminderTimes(reminders[task.type]).indexOf(task.time);
+        out.push({id:200000+(dayIndex%1000)*10+CARE.indexOf(task.type)*3+slot,at,type:task.type,title:'コザボタ日和',body:`${TYPES[task.type][1]}の時間です（${task.time}）`});
+      }
+    }
+    return out.sort((a,b)=>a.at-b.at).slice(0,limit);
+  }
   function calendarFile(reminders,now=new Date()){
     const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Kozakura Biyori//Care Reminders//JA','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:コザボタ日和のお世話'];
     for(const type of CARE){
@@ -262,6 +278,6 @@ const KozakuraModel = (() => {
     return {from,to,count:range.length,weights,weight:weights.length?{latest:weights[0],earliest:weights.at(-1),min:Math.min(...values),max:Math.max(...values)}:null,flight:{days:flightDays,averageMinutes:flightDays?Math.round(flightMinutes/flightDays):0},healthDays:of('health').length,concerns:of('health').filter(r=>['appetite','droppings','activity'].some(key=>r[key]!=='いつもどおり')),eggs:of('egg'),estrus:of('estrus'),visits:of('visit'),notes:of('note')};}
   // Spreadsheet-friendly CSV (BOM for Excel). Cells that could run as formulas are prefixed with '.
   function recordsCsv(records){const cell=v=>{let t=String(v??'');if(/^[=+\-@\t\r]/.test(t))t=`'${t}`;return /[",\r\n]/.test(t)?`"${t.replaceAll('"','""')}"`:t;};const rows=[['日付','時刻','種類','内容','メモ'],...sorted(records).reverse().map(r=>[r.date,r.time||'',TYPES[r.type]?.[1]||r.type,r.type==='note'?'':summary(r),r.note||''])];return '\ufeff'+rows.map(row=>row.map(cell).join(',')).join('\r\n')+'\r\n';}
-  return Object.freeze({HOME_SHORTCUTS,DEFAULT_HOME_SHORTCUTS,validateHomeShortcuts,TIMER_ACTIONS,defaultTimerActions,validateTimerActions,validateReminder,reminderTimes,nextCareDate,careTasks,DEFAULT_BEHAVIOR_ORDER,BIRD_APPEARANCES,BACKGROUNDS,APPEARANCE_MODES,behaviorOrder,validateCover,timerCalendarFile,calendarFile,TYPES,BEHAVIORS,LEVEL,CARE,date,addDays,validDate,validTime,blank,normalize,validateRecord,validateBackup,photo,sorted,summary,day,period,chartData,vetReport,recordsCsv});
+  return Object.freeze({HOME_SHORTCUTS,DEFAULT_HOME_SHORTCUTS,validateHomeShortcuts,TIMER_ACTIONS,defaultTimerActions,validateTimerActions,validateReminder,reminderTimes,nextCareDate,careTasks,DEFAULT_BEHAVIOR_ORDER,BIRD_APPEARANCES,BACKGROUNDS,APPEARANCE_MODES,behaviorOrder,validateCover,timerCalendarFile,calendarFile,careNotificationPlan,TYPES,BEHAVIORS,LEVEL,CARE,date,addDays,validDate,validTime,blank,normalize,validateRecord,validateBackup,photo,sorted,summary,day,period,chartData,vetReport,recordsCsv});
 })();
 if(typeof module!=='undefined')module.exports=KozakuraModel;

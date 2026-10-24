@@ -1,6 +1,6 @@
 'use strict';
 // No OS permissions, network access or native libraries are used by the PWA.
-// A future iOS entry point may supply the documented, trusted local bridge.
+// In the iOS app, native.js supplies the documented, trusted local bridge (window.KozabotaNativeNotifications).
 const KozabotaPlatform = (() => {
   const TIMER_NOTIFICATION_ID = 104001;
   const methods = ['getPermission', 'requestPermission', 'replaceTimerNotification', 'cancelTimerNotification'];
@@ -67,6 +67,49 @@ const KozabotaPlatform = (() => {
       }
     };
   }
-  return {TIMER_NOTIFICATION_ID, timerRequest, createTimerNotifications};
+  const careMethods = ['getPermission', 'requestPermission', 'replaceCareNotifications'];
+  // Care reminders (KozakuraModel.careNotificationPlan). Never asks for permission on its own; an unchanged plan is not resent.
+  function createCareNotifications({bridge = null} = {}) {
+    const available = Boolean(bridge && careMethods.every(name => typeof bridge[name] === 'function'));
+    let status = {state: available ? 'idle' : 'unavailable'};
+    let queue = Promise.resolve(), applied = null;
+    const enqueue = operation => {
+      const result = queue.then(operation).catch(() => {
+        applied = null;
+        status = {state: 'error'};
+        return {...status};
+      });
+      queue = result;
+      return result;
+    };
+    return {
+      available,
+      getStatus: () => ({...status}),
+      requestPermission() {
+        if (!available) return Promise.resolve('unavailable');
+        return enqueue(async () => (await bridge.requestPermission()) === 'granted' ? 'granted' : 'denied')
+          .then(result => typeof result === 'string' ? result : 'error');
+      },
+      sync(plan) {
+        if (!available) return Promise.resolve({...status});
+        // Whitelist the fields the OS needs; the plan never carries names, photos or notes.
+        const snapshot = plan.map(({id, at, title, body}) => ({id, at, title, body}));
+        const key = JSON.stringify(snapshot);
+        return enqueue(async () => {
+          const permission = await bridge.getPermission();
+          if (permission !== 'granted') {
+            applied = null;
+            status = {state: permission === 'denied' ? 'denied' : 'prompt'};
+            return {...status};
+          }
+          if (applied !== key) await bridge.replaceCareNotifications(snapshot);
+          applied = key;
+          status = snapshot.length ? {state: 'scheduled', count: snapshot.length, next: snapshot[0].at} : {state: 'idle'};
+          return {...status};
+        });
+      }
+    };
+  }
+  return {TIMER_NOTIFICATION_ID, timerRequest, createTimerNotifications, createCareNotifications};
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = KozabotaPlatform;
