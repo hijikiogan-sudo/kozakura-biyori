@@ -1,11 +1,14 @@
 'use strict';
 const APP = 'kozakura-biyori', DB = 'kozakura-biyori-local-v1';
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '1.12.0';
 const $ = id => document.getElementById(id);
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const uid = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const M=KozakuraModel;
+// True inside the iOS app (Capacitor); native.js then provides the notification and file bridges.
+const NATIVE=Boolean(window.Capacitor?.isNativePlatform?.());
 const timerNotifications=KozabotaPlatform.createTimerNotifications({bridge:window.KozabotaNativeNotifications});
+const careNotifications=KozabotaPlatform.createCareNotifications({bridge:window.KozabotaNativeNotifications});
 const blank=M.blank;
 let db, state = blank(), route = 'home', calendarDate = today(), recordPage = 0, toastTimer;
 let timerMode = 'countup', timerMinutes = 15;
@@ -59,7 +62,7 @@ function migrateToMediaStore(tx){const data=tx.objectStore('data'),media=tx.obje
 function openDB() { return new Promise((resolve,reject)=> { const req=indexedDB.open(DB,DB_VERSION); req.onupgradeneeded=event=>{const d=req.result;if(event.oldVersion<1)d.createObjectStore('data');if(event.oldVersion<2){d.createObjectStore('media');if(event.oldVersion>=1)migrateToMediaStore(req.transaction);}}; req.onblocked=()=>$('main').replaceChildren(...title('更新の準備中です','ほかのタブやウィンドウで開いている「コザボタ日和」を閉じると、続きが開きます。')); req.onerror=()=>reject(req.error); req.onsuccess=()=>{const d=req.result;d.onversionchange=()=>{d.close();$('main').replaceChildren(...title('新しい版に更新されました','このページを開き直してください。記録はそのまま残っています。'));};resolve(d);}; }); }
 function readState() { return new Promise((resolve,reject)=> { const tx=db.transaction(['data','media'],'readonly'); const req=tx.objectStore('data').get('state'); req.onsuccess=()=>hydrate(req.result||M.blank(),tx.objectStore('media'),resolve,reject); req.onerror=()=>reject(req.error); }); }
 // Transactional read-modify-write prevents two open tabs from overwriting each other's new records.
-function mutateTransaction(fn) { return new Promise((resolve,reject)=> { const tx=db.transaction(['data','media'],'readwrite'); const store=tx.objectStore('data'),mediaStore=tx.objectStore('media'); const req=store.get('state'); let next,written; req.onsuccess=()=>{const before=new Set(mediaKeys(req.result||{}));hydrate(req.result||M.blank(),mediaStore,d=>{ try {next=d; fn(next); const {meta,media}=splitMedia(next); let size=JSON.stringify(meta).length; for(const value of media.values())size+=value.length; if(next.records.length>50000 || size>38*1024*1024)throw new Error('上限：記録は50,000件、データ全体は約38MBまでです。バックアップ後、不要な記録・写真を削除してください。'); for(const [key,value] of media)if(!before.has(key)||mediaCache.get(key)!==value)mediaStore.put(value,key); for(const key of before)if(!media.has(key))mediaStore.delete(key); store.put(meta,'state'); written=media;} catch(e){tx.abort();reject(e);} },e=>{tx.abort();reject(e);});}; tx.oncomplete=()=> {mediaCache.clear();for(const [key,value] of written)mediaCache.set(key,value);state=next; void timerNotifications.sync(next.timer).then(refreshNativeTimerStatus); channel?.postMessage('changed'); resolve();}; tx.onabort=tx.onerror=()=>reject(tx.error || new Error('保存に失敗しました')); }); }
+function mutateTransaction(fn) { return new Promise((resolve,reject)=> { const tx=db.transaction(['data','media'],'readwrite'); const store=tx.objectStore('data'),mediaStore=tx.objectStore('media'); const req=store.get('state'); let next,written; req.onsuccess=()=>{const before=new Set(mediaKeys(req.result||{}));hydrate(req.result||M.blank(),mediaStore,d=>{ try {next=d; fn(next); const {meta,media}=splitMedia(next); let size=JSON.stringify(meta).length; for(const value of media.values())size+=value.length; if(next.records.length>50000 || size>38*1024*1024)throw new Error('上限：記録は50,000件、データ全体は約38MBまでです。バックアップ後、不要な記録・写真を削除してください。'); for(const [key,value] of media)if(!before.has(key)||mediaCache.get(key)!==value)mediaStore.put(value,key); for(const key of before)if(!media.has(key))mediaStore.delete(key); store.put(meta,'state'); written=media;} catch(e){tx.abort();reject(e);} },e=>{tx.abort();reject(e);});}; tx.oncomplete=()=> {mediaCache.clear();for(const [key,value] of written)mediaCache.set(key,value);state=next; void timerNotifications.sync(next.timer).then(refreshNativeTimerStatus); syncCareNotifications(); channel?.postMessage('changed'); resolve();}; tx.onabort=tx.onerror=()=>reject(tx.error || new Error('保存に失敗しました')); }); }
 async function mutate(fn){pendingWrites++;try{return await mutateTransaction(fn);}finally{pendingWrites--;}}
 async function save(fn, message='保存しました') {try { await mutate(fn); if(message) toast(message); render(); return true; } catch(e) {toast(errorMessage(e));return false;} }
 function card(...children) {return el('section',{class:'card'},children);}
@@ -145,7 +148,7 @@ function checkTimerAlert(){
   const key=`${state.timer.startedAt}:${state.timer.durationSeconds}`;
   if(alertedTimerKey===key)return;
   alertedTimerKey=key;
-  playTimerSound();
+  if(timerNotifications.getStatus().state!=='scheduled')playTimerSound();
   toast('放鳥の設定時間になりました。愛鳥を確認してください。');
 }
 function nativeTimerStatus(){
@@ -155,6 +158,17 @@ function nativeTimerStatus(){
   if(result.state==='error')return '終了のお知らせを予約・取り消しできませんでした。標準タイマーも確認してください。';
   return 'カウントダウン開始時に、端末内へ終了のお知らせを予約します。';
 }
+// The rolling care plan is rebuilt after every save and whenever the app comes back, which also extends it past the 14-day window.
+function syncCareNotifications(){if(careNotifications.available)void careNotifications.sync(M.careNotificationPlan(state.settings.reminders,state.records)).then(refreshCareNotificationStatus);}
+function careNotificationStatus(){
+  const result=careNotifications.getStatus();
+  if(result.state==='scheduled')return `${result.count}件のお知らせを端末に予約しています。次は${new Intl.DateTimeFormat('ja-JP',{month:'numeric',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(result.next))}です。`;
+  if(result.state==='denied')return '通知が許可されていません。iPhoneの「設定 → 通知 → コザボタ日和」で許可してください。';
+  if(result.state==='prompt')return '予定を保存すると、通知を許可するか確認します。';
+  if(result.state==='error')return 'お知らせを予約できませんでした。アプリを開き直してください。';
+  return '有効な予定がないため、お知らせは予約していません。';
+}
+function refreshCareNotificationStatus(){const status=$('care-notification-status');if(status)status.textContent=careNotificationStatus();}
 function refreshNativeTimerStatus(){const status=$('native-timer-status');if(status)status.textContent=nativeTimerStatus();}
 function timerNotificationControls(){
   const countdown=state.timer?Boolean(state.timer.durationSeconds):timerMode==='countdown';
@@ -334,8 +348,7 @@ async function exportBackup(){
   backupExportPending=true;updateBackupControls();
   try{
     const current=await readState(),exportedAt=new Date().toISOString();
-    const blob=new Blob([JSON.stringify({app:APP,version:2,exportedAt,data:current})],{type:'application/json'});
-    const url=URL.createObjectURL(blob),a=el('a',{href:url,download:`kozakura-biyori-${today()}.json`});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+    if(await downloadFile(JSON.stringify({app:APP,version:2,exportedAt,data:current}),'application/json',`kozakura-biyori-${today()}.json`)===false)return;
     const marked=await save(s=>s.lastBackup=exportedAt,'バックアップファイルを作成しました。「ファイル」などの保存先で保存完了を確認してください。');
     if(!marked)toast('ファイルを作成しましたが、書き出し日時を保存できませんでした。保存先にファイルがあるか確認してください。');
   }catch(e){toast(errorMessage(e));}finally{backupExportPending=false;updateBackupControls();}
@@ -367,7 +380,7 @@ async function importBackup(file){
 function settings(){const restore=input('backup','file','',{accept:'.json,application/json',onchange:async e=>{await importBackup(e.target.files[0]);e.target.value='';}});restore.removeAttribute('value');return [...title('設定とバックアップ','たいせつな記録を、長く残すために。'),card(el('h2',{},'愛鳥のプロフィール'),el('p',{class:'muted'},'名前・性別・推定年齢・表紙の写真を変更できます。'),el('button',{class:'ghost wide',onclick:profileDialog},'プロフィールを編集')),card(el('h2',{},'データを持ち出す・戻す'),el('p',{class:'backup-info'},`記録 ${state.records.length} 件 / アルバム ${state.photos.length} 枚`),el('button',{class:'wide',onclick:exportBackup},'バックアップを書き出す'),el('p',{class:'muted'},'写真を含むJSONファイルを保存します。iPhoneでは保存先を「ファイル」アプリで確認してください。'),el('p',{class:'muted'},state.lastBackup?`最終書き出し操作：${new Date(state.lastBackup).toLocaleString('ja-JP')}（ファイルの保存完了は保存先で確認）`:'まだバックアップを書き出していません。'),label('バックアップから復元',restore),el('p',{class:'muted'},'復元すると現在のデータを置き換えます。実行前に確認します。移行時、実行中の放鳥タイマーは引き継ぎません。')),card(el('h2',{},'iPhoneでアプリとして使う'),el('ol',{class:'help-list'},el('li',{},'Safariで公開URLを開きます。'),el('li',{},'共有メニューから「ホーム画面に追加」を選びます。「Webアプリとして開く」があればオンにします。'),el('li',{},'ホーム画面のアイコンから起動し、下のオフライン状態が「オフライン準備完了」になるまでオンラインで開きます。'),el('li',{},'その後、機内モードで起動し記録・再起動後の保存を確認してください。'))),card(el('h2',{},'保存とプライバシー'),el('ul',{class:'help-list'},el('li',{},'写真・プロフィール・健康・放鳥・体重・産卵などはこの端末のブラウザ内（IndexedDB）に保存します。アプリからサーバーやGitHubへ送信する機能はありません。'),el('li',{},'同じURLを別の人が開いても、それぞれ空のデータから始まります。同じ端末・同じブラウザを共用するとデータも共用されます。'),el('li',{},'Safariの閲覧画面とホーム画面アプリ、別のブラウザでは保存領域が異なる場合があります。継続利用はホーム画面アプリに統一してください。'),el('li',{},'Webサイトデータの削除、端末の故障・交換、容量不足やOSの整理で記録が失われる場合があります。プライベートブラウズを避け、週1回や大切な記録の後にバックアップしてください。'),el('li',{},'バックアップには愛鳥の写真と記録が含まれます。共有する場合は内容と保存先を確認してください。'),el('li',{},'公開サーバーにはアクセス時の通信情報が残る場合があります。広告・解析ツール・課金APIは使用しません。'),el('li',{},'初期イラストは本アプリ用のオリジナルです。実測でない体重やサンプル記録は入れていません。自分が利用する権利のある写真を選んでください。'))),el('div',{class:'notice'},'このアプリは日々の観察用です。健康状態の診断はしません。気になる変化は記録を持って、鳥を診られる獣医師に相談してください。')];}
 function render(){route=location.hash.slice(1)||'home';const pages={home,records,calendar,album,settings};if(!pages[route])route='home';$('main').replaceChildren(...pages[route]().flat(Infinity).filter(node=>node!==null&&node!==undefined));for(const a of document.querySelectorAll('.bottom-nav a')){if(a.hash===`#${route}`)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');}connection();}
 function connection(){$('connection').textContent=navigator.onLine?'端末内に保存':'オフライン';}
-async function refresh(){try {state=await readState();render();if($('detail-favorite'))updateDetailFavorite($('detail-favorite').dataset.photoId);void timerNotifications.sync(state.timer).then(refreshNativeTimerStatus);}catch(e){toast(errorMessage(e));}}
+async function refresh(){try {state=await readState();syncCareNotifications();render();if($('detail-favorite'))updateDetailFavorite($('detail-favorite').dataset.photoId);void timerNotifications.sync(state.timer).then(refreshNativeTimerStatus);}catch(e){toast(errorMessage(e));}}
 // Installing a new shell does not replace JavaScript in an already open page.
 // Offer an explicit reload so ongoing edits and writes are never discarded.
 function checkAppUpdate(){
@@ -389,7 +402,7 @@ function checkAppUpdate(){
   };
   controller.postMessage({type:'GET_APP_VERSION'},[channel.port2]);
 }
-async function offlineSetup(){const status=$('offline-status');if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{checkAppUpdate();const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.11.0')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
+async function offlineSetup(){const status=$('offline-status');if(NATIVE){status.textContent='オフラインで利用できます';return;}if(!('serviceWorker' in navigator)){status.textContent='このブラウザはオフライン非対応';return;}try {const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});let finished=false;const ready=async()=>{checkAppUpdate();const keys=await caches.keys();if(keys.includes('kozakura-biyori-shell-v1.12.0')){status.textContent='オフライン準備完了';finished=true;}};await ready();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='activated')ready();if(worker.state==='redundant'&&!finished)status.textContent='オフライン準備失敗・オンラインで再度開いてください';});});navigator.serviceWorker.addEventListener('controllerchange',ready);setTimeout(()=>{if(!finished)status.textContent='オフライン準備未完了・オンラインで再度開いてください';},20000);}catch(e){status.textContent='オフライン準備失敗・オンラインで再度開いてください';}}
 async function init(){try {db=await openDB();void navigator.storage?.persist?.().catch(()=>{});await mutate(()=>{});state=await readState();render();offlineSetup();}catch(e){$('main').replaceChildren(...title('保存領域を開けませんでした','記録を保存できる環境で開き直してください。'),el('div',{class:'notice'},errorMessage(e)));}}
 
 // v1.1 interface. Data stays in the v1 database; nothing is sent to a server.
@@ -773,7 +786,8 @@ function homeCareContent(){
 function careScheduleCard(){
   return card(sectionTitle('今日のお世話',el('button',{class:'text-button',onclick:()=>{selectedDate=today();go('reminders');}},'予定・お知らせ')),el('div',{id:'home-care-content'},homeCareContent()),el('div',{class:'care-card-actions'},el('button',{class:'text-button',onclick:()=>{selectedDate=today();go('care');}},'追加・過去の記録 →')));
 }
-function downloadFile(content,type,name){const url=URL.createObjectURL(new Blob([content],{type})),a=el('a',{href:url,download:name});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
+// Resolves false when the iOS share sheet could not take the file (the error is shown as a toast).
+function downloadFile(content,type,name){if(window.KozabotaNativeFiles)return window.KozabotaNativeFiles.share(content,name).then(()=>true,()=>{toast('ファイルを書き出せませんでした。空き容量を確認してください。');return false;});const url=URL.createObjectURL(new Blob([content],{type})),a=el('a',{href:url,download:name});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 function remindersPage(){
   const controls=['food','water','clean'].map(type=>{
     const value=state.settings.reminders[type],check=input(`${type}-enabled`,'checkbox','yes');check.checked=value.enabled;
@@ -786,11 +800,14 @@ function remindersPage(){
   submitForm(form,async f=>{
     const reminders={};
     try{for(const type of CARE){const times=[0,1,2].map(i=>f.get(`${type}-time-${i}`)).filter(Boolean).sort();reminders[type]=M.validateReminder({enabled:f.has(`${type}-enabled`),time:times[0],extraTimes:times.slice(1),interval:Number(f.get(`${type}-interval`)),startDate:f.get(`${type}-start`)});}}catch(e){toast(e.message);return;}
-    await save(s=>s.settings.reminders=reminders,'予定を保存しました。閉じている間のお知らせにはカレンダー登録が必要です。');
+    const saved=await save(s=>s.settings.reminders=reminders,careNotifications.available?'予定を保存しました':'予定を保存しました。閉じている間のお知らせにはカレンダー登録が必要です。');
+    // Saving enabled reminders is the explicit action that may show the iOS permission prompt.
+    if(saved&&careNotifications.available&&CARE.some(type=>reminders[type].enabled)){await careNotifications.requestPermission();syncCareNotifications();}
   });
   const next=['food','water','clean'].filter(type=>state.settings.reminders[type].enabled).map(type=>{const r=state.settings.reminders[type];let next=M.nextCareDate(r,today());if(next===today()&&M.reminderTimes(r).every(t=>t<=timeNow()))next=M.addDays(next,r.interval);return el('p',{class:'muted'},TYPES[type][1]+'：'+(r.interval===1?'毎日':r.interval+'日おき')+' '+M.reminderTimes(r).join('・')+' ／ 次の予定日 '+prettyDate(next,true));});
   const enabled=CARE.filter(type=>state.settings.reminders[type].enabled);
   const exportSummary=enabled.map(type=>`${TYPES[type][1]} ${M.reminderTimes(state.settings.reminders[type]).join('・')}`).join(' ／ ');
+  if(careNotifications.available)return [heading('お世話の予定・お知らせ'),card(el('h2',{},'アプリ内の予定を確認'),dateSwitcher(selectedDate,v=>selectedDate=v),el('div',{id:'care-schedule-list','data-date':selectedDate},careScheduleList(selectedDate)),next),el('section',{class:'card',id:'reminder-step-1'},el('h2',{},'予定を設定'),el('p',{class:'muted'},'ご飯替え・水替え・掃除の日付と時刻を設定します。保存すると、時刻にiPhoneへお知らせします。'),form),card(el('h2',{},'端末へのお知らせ'),el('p',{class:'notice',id:'care-notification-status',role:'status'},careNotificationStatus()),el('button',{class:'ghost wide',onclick:async()=>{await careNotifications.requestPermission();syncCareNotifications();}},icon('bell'),'通知の許可を確認'),el('ul',{class:'help-list'},el('li',{},'2週間先まで（最大60件）を予約し、アプリを開くたびに先の分を追加します。しばらく開かないと、それより先のお知らせは届きません。'),el('li',{},'時刻より前にお世話を記録すると、その回のお知らせは取り消します。'),el('li',{},'通知は端末の中だけで予約します。愛鳥の名前や写真は通知に含めません。音は消音・集中モードの設定に従います。')))];
   return [heading('お世話の予定・お知らせ'),el('div',{class:'notice'},'お知らせの準備は3つの手順です。アプリ内の予定を保存するだけでは、閉じている間の通知は予約されません。'),el('ol',{class:'reminder-steps'},el('li',{},'アプリ内の予定を保存'),el('li',{},'カレンダーへ予定を登録'),el('li',{},'iPhoneの通知設定を確認')),card(el('h2',{},'アプリ内の予定を確認'),dateSwitcher(selectedDate,v=>selectedDate=v),el('div',{id:'care-schedule-list','data-date':selectedDate},careScheduleList(selectedDate)),next),el('section',{class:'card',id:'reminder-step-1'},el('h2',{},'1. アプリ内の予定を保存'),el('p',{class:'muted'},'ご飯替え・水替え・掃除の日付と時刻を設定します。'),form),el('section',{class:'card',id:'reminder-step-2'},el('h2',{},'2. カレンダーへ予定を登録'),el('p',{id:'calendar-export-summary',class:'muted'},enabled.length?`書き出す予定（保存済み）：${exportSummary}`:'予定を有効にして保存すると、ファイルを書き出せます。'),el('button',{class:'primary wide',disabled:enabled.length?null:'',onclick:()=>{try{downloadFile(M.calendarFile(state.settings.reminders),'text/calendar;charset=utf-8','kozakura-care-reminders.ics');toast('予定ファイルを作成しました。カレンダーへの追加が必要です。');}catch(e){toast(e.message);}}},icon('calendar'),'カレンダー用ファイルを書き出す'),el('ol',{class:'help-list'},el('li',{},'保存済みの予定から .ics ファイルを作成します。入力を変更したら、先に手順1で保存してください。'),el('li',{},'ファイルを標準カレンダーで開き、予定を追加します。iPhoneで追加できない場合はMacから同じiCloudカレンダーへ追加してください。')),el('p',{class:'notice'},'ファイルの作成・保存だけでは通知は始まりません。カレンダーへの追加完了をアプリから確認することはできません。')),el('section',{class:'card',id:'reminder-step-3'},el('h2',{},'3. iPhoneの通知設定を確認'),el('ol',{class:'help-list'},el('li',{},'iPhoneの「設定 → 通知 → カレンダー」で通知を許可します。'),el('li',{},'追加した予定をカレンダーで開き、予定の「通知」を確認します。'),el('li',{},'音量・消音・集中モードも確認します。通知音は端末の設定に従います。')),el('p',{class:'muted'},'端末の通知許可や通知音をアプリから確認・保証することはできません。')),card(el('h2',{},'変更・停止するとき'),el('p',{},'アプリの予定を変更・停止しても、カレンダー側の予定は自動で変わりません。以前の繰り返し予定をカレンダーで削除し、必要な場合だけ保存し直したファイルを登録してください。重複登録にもご注意ください。'),el('p',{class:'muted'},'お世話を実施済みにしても、カレンダー通知は自動では取り消されません。実施の記録は予定ごとに残ります。')),card(el('h2',{},'保存とプライバシー'),el('p',{class:'muted'},'写真や飼育記録は端末内に保存し、アプリから外部の通知配信サーバーへ送りません。予定をカレンダーに追加した後の同期は、カレンダーの設定に従います。'))];
 }
 function menuItem(name,sub,symbol,action,cls=''){return el('button',{class:`menu-item ${cls}`,onclick:action},el('span',{class:'menu-icon'},icon(symbol)),el('span',{},el('strong',{},name),sub?el('small',{},sub):null),icon('arrow'));}
@@ -809,7 +826,7 @@ let reportPeriod='90';
 function reportList(records,emptyText){return records.length?el('ul',{class:'report-list'},records.map(r=>el('li',{},el('time',{datetime:r.date},`${r.date}${r.time?` ${r.time}`:''}`),el('span',{},r.type==='note'?r.note:describe(r)),r.note&&r.type!=='note'?el('small',{},r.note):null))):el('p',{class:'muted'},emptyText);}
 function reportPage(){const to=today(),from=reportPeriod==='all'?'1900-01-01':M.addDays(to,-(Number(reportPeriod)-1)),report=M.vetReport(state.records,from,to),p=state.profile,w=report.weight;
   const csv=()=>{const records=state.records.filter(r=>r.date>=from&&r.date<=to);if(!records.length){toast('この期間の記録がありません');return;}downloadFile(M.recordsCsv(records),'text/csv',`kozakura-biyori-records-${to}.csv`);toast('CSVファイルを作成しました');};
-  return [heading('受診用レポート'),el('div',{class:'no-print'},tabs([['30','30日'],['90','3か月'],['365','1年'],['all','全期間']],reportPeriod,v=>reportPeriod=v,'period-tabs','レポートの期間'),el('div',{class:'row'},el('button',{class:'primary',onclick:()=>window.print()},icon('download'),'印刷・PDF'),el('button',{class:'ghost',onclick:csv},'CSVで書き出す')),el('p',{class:'muted'},'写真は含みません。印刷画面の共有メニューからPDFとして保存できます。')),
+  return [heading('受診用レポート'),el('div',{class:'no-print'},tabs([['30','30日'],['90','3か月'],['365','1年'],['all','全期間']],reportPeriod,v=>reportPeriod=v,'period-tabs','レポートの期間'),el('div',{class:'row'},NATIVE?null:el('button',{class:'primary',onclick:()=>window.print()},icon('download'),'印刷・PDF'),el('button',{class:'ghost',onclick:csv},'CSVで書き出す')),el('p',{class:'muted'},NATIVE?'写真は含みません。CSVは共有メニューから「ファイル」などに保存できます。':'写真は含みません。印刷画面の共有メニューからPDFとして保存できます。')),
     card(el('h2',{},`${p.name||'愛鳥'}の記録`),el('dl',{class:'report-facts'},el('dt',{},'期間'),el('dd',{},reportPeriod==='all'?`${to}まで（全期間）`:`${from} 〜 ${to}`),el('dt',{},'性別'),el('dd',{},p.sex||'不明'),p.joined?[el('dt',{},'お迎えした日'),el('dd',{},p.joined)]:null,el('dt',{},'記録件数'),el('dd',{},`${report.count}件`))),
     card(el('h2',{},'体重'),w?[el('dl',{class:'report-facts'},el('dt',{},'最新'),el('dd',{},`${w.latest.value} g（${w.latest.date}）`),el('dt',{},'期間内'),el('dd',{},`最小 ${w.min} g ／ 最大 ${w.max} g`),el('dt',{},'期間内の変化'),el('dd',{},`${w.earliest.value} g（${w.earliest.date}）→ ${w.latest.value} g`)),el('details',{},el('summary',{},`測定値の一覧（${report.weights.length}件）`),reportList(report.weights,''))]:el('p',{class:'muted'},'この期間の体重記録はありません。')),
     card(el('h2',{},'健康チェック'),el('p',{},`記録した日：${report.healthDays}日 ／ 「いつもどおり」以外：${report.concerns.length}件`),reportList(report.concerns,'「いつもどおり」以外の記録はありません。')),

@@ -1,0 +1,9 @@
+{
+  "appId": "io.github.hijikiogansudo.kozakurabiyori",
+  "appName": "コザボタ日和",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#f7f6ef"
+  }
+}

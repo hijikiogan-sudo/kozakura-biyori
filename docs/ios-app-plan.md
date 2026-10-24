@@ -1,6 +1,27 @@
 # App Store版へ向けた構成
 
-現時点はPWAです。iOSプロジェクト、Capacitor、通知プラグイン、OSへの通知予約はまだ含みません。`platform.js` は将来の端末機能を接続する境界で、ブラウザでは権限要求・通知予約・通信を行いません。
+## 現状（v1.12.0）
+
+Capacitor 8（Swift Package Manager）のiOSプロジェクトを `ios/` に追加した。Web版は今までどおりリポジトリ直下をGitHub Pagesで配信し、iOS版は `npm run ios:sync` で `www/` にコピーした同じファイルを同梱する（`www/` と `ios/App/App/public/` は生成物なのでコミットしない）。
+
+- `native.js`：iOSアプリの中だけで動く。`window.KozabotaNativeNotifications`（タイマー・お世話の端末内通知）と `window.KozabotaNativeFiles`（共有シートへのファイル書き出し）を用意する。ブラウザでは何もしない。
+- 放鳥タイマー：ID 104001。カウントダウン開始時に終了時刻を予約し、終了・取消・復元で差し替える。予約済みなら前面でもWebAudioの終了音は鳴らさず、OSの通知音に任せる。
+- お世話の予定：`KozakuraModel.careNotificationPlan` が14日先まで・最大60件（iOSの保留上限64件から余裕を残す）をID 200000〜209999で作る。保存のたび・アプリに戻るたびに作り直し、記録済みの回は外す。許可ダイアログは予定を保存したとき・「通知の許可を確認」を押したときだけ出す。
+- バックアップ・CSVは共有シートへ。受診用レポートの印刷はWKWebViewで動かないため、iOS版ではボタンを隠している（今後の課題）。
+- `Info.plist`：カメラ・マイク・写真の利用目的、暗号化なし（`ITSAppUsesNonExemptEncryption`）。Bundle IDは `io.github.hijikiogansudo.kozakurabiyori`（App Store Connectに登録する前なら変更できる）。
+
+テスト：`tests/test_ios_bridge.py` はCapacitorの偽物を読み込ませて、画面操作から予約・取消・共有までを確認する。`tests/test_care_notifications.cjs` は予約計画と受け渡しの単体テスト。どちらもiOSが実際に通知を届けることまでは確かめないので、シミュレーターと実機で確認する。
+
+## Xcodeでの確認手順
+
+1. `npm install` → `npm run ios:sync` → `npm run ios:open`
+2. Xcodeで「Signing & Capabilities」のTeamに自分のApple IDを選ぶ（無料のApple IDで可）。
+3. シミュレーターで起動し、通知の許可・タイマー終了・お世話の予定・アプリを閉じた状態での通知・共有シートを確認する。
+4. App Store提出前：1024pxのアプリアイコンを用意、`PrivacyInfo.xcprivacy` をアプリターゲットに追加、受診用レポートのPDF出力をネイティブで用意する。
+
+## 以前の設計メモ
+
+`platform.js` は端末機能を接続する境界で、ブラウザでは権限要求・通知予約・通信を行いません。
 
 ## 実装済みの接続点
 
