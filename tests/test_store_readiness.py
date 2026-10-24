@@ -66,6 +66,26 @@ class StoreReadinessTests(unittest.TestCase):
         self.assertNotEqual(backgrounds['light'], backgrounds['dark'])
         self.assertEqual(self.page.evaluate("getComputedStyle(document.documentElement).colorScheme"), 'dark')
 
+    def test_vet_report_page_prints_and_exports_csv(self):
+        self.open('settings')
+        self.page.evaluate('''async()=>{await mutate(s=>{s.profile.name='合成の愛鳥';s.records=[{id:'w1',type:'weight',date:today(),value:48,note:'',createdAt:new Date().toISOString()},
+            {id:'h1',type:'health',date:today(),appetite:'少なめ',droppings:'いつもどおり',activity:'いつもどおり',note:'合成の観察',createdAt:new Date().toISOString()}];});render();}''')
+        self.page.get_by_role('button', name='受診用レポート').click()
+        main = self.page.locator('main')
+        expect(main).to_contain_text('合成の愛鳥の記録')
+        expect(main).to_contain_text('48 g')
+        expect(main).to_contain_text('「いつもどおり」以外：1件')
+        with self.page.expect_download() as info:
+            self.page.get_by_role('button', name='CSVで書き出す').click()
+        content = Path(info.value.path()).read_text(encoding='utf-8-sig')
+        self.assertIn('体重,48 g', content)
+        self.assertIn('合成の観察', content)
+        self.page.emulate_media(media='print')
+        self.page.evaluate("dispatchEvent(new Event('beforeprint'))")
+        expect(self.page.locator('.bottom-nav')).to_be_hidden()
+        expect(self.page.get_by_role('button', name='CSVで書き出す')).to_be_hidden()
+        self.assertTrue(self.page.locator('main details').evaluate('d=>d.open'))
+
 
 if __name__ == '__main__':
     unittest.main()
