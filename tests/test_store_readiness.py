@@ -89,7 +89,7 @@ class StoreReadinessTests(unittest.TestCase):
     def test_background_color_choice_applies_per_mode_and_persists(self):
         self.page.emulate_media(color_scheme='light')
         self.open('settings')
-        self.page.get_by_role('button', name='背景の色').click()
+        self.page.get_by_role('button', name='画面モード・背景').click()
         page_bg = lambda: self.page.evaluate("getComputedStyle(document.body).backgroundColor")
         before = page_bg()
         self.page.get_by_label('ライトモード・アクア').check(force=True)
@@ -102,8 +102,38 @@ class StoreReadinessTests(unittest.TestCase):
         expect(self.page.locator('main')).not_to_contain_text('記録をひらいています')
         self.assertEqual(self.page.evaluate('[document.documentElement.dataset.bgLight,document.documentElement.dataset.bgDark]'), ['aqua', 'blue'])
         self.page.emulate_media(color_scheme='dark')
+        expect(self.page.locator('html')).to_have_attribute('data-mode', 'dark')
         self.assertEqual(page_bg(), 'rgb(27, 35, 49)')
         self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
+
+    def test_in_app_mode_overrides_device_setting_and_survives_reload(self):
+        self.page.emulate_media(color_scheme='light')
+        self.open('settings')
+        self.page.get_by_role('button', name='画面モード・背景').click()
+        shell_bg = lambda: self.page.evaluate("getComputedStyle(document.querySelector('.app-shell')).backgroundColor")
+        light = shell_bg()
+        self.page.get_by_role('button', name='ダーク', exact=True).click()
+        expect(self.page.locator('#toast')).to_contain_text('画面モードを変更しました')
+        self.assertEqual(self.page.evaluate('document.documentElement.dataset.mode'), 'dark')
+        dark = shell_bg()
+        self.assertNotEqual(dark, light)
+        expect(self.page.locator('main')).to_contain_text('いつもダークモードで表示します')
+        # The forced mode is applied before the database opens on the next launch.
+        self.page.reload(wait_until='domcontentloaded')
+        self.assertEqual(self.page.evaluate('document.documentElement.dataset.mode'), 'dark')
+        self.assertEqual(self.page.evaluate("document.getElementById('dark-css').media"), 'screen')
+        self.assertEqual(shell_bg(), dark)
+        # Forced light wins over a dark device.
+        self.page.emulate_media(color_scheme='dark')
+        expect(self.page.locator('main')).not_to_contain_text('記録をひらいています')
+        self.page.get_by_role('button', name='ライト', exact=True).click()
+        expect(self.page.locator('main')).to_contain_text('いつもライトモードで表示します')
+        self.assertEqual(shell_bg(), light)
+        # Back to following the device.
+        self.page.get_by_role('button', name='端末に合わせる').click()
+        expect(self.page.locator('main')).to_contain_text('いまはダークモードです')
+        self.assertEqual(shell_bg(), dark)
+        self.assertEqual(self.page.evaluate('async()=>(await readState()).settings.appearanceMode'), 'auto')
 
 
 if __name__ == '__main__':

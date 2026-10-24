@@ -45,3 +45,10 @@ test('background choices default, survive normalize and reject unknown colors in
  assert.doesNotThrow(()=>M.validateBackup(backup({light:'violet',dark:'white'})));
  assert.throws(()=>M.validateBackup(backup({light:'red'})),/背景の色/);
 });
+test('appearance mode defaults to following the device and rejects unknown modes in backups',()=>{
+ assert.equal(M.blank().settings.appearanceMode,'auto');
+ assert.equal(M.normalize({settings:{appearanceMode:'sepia'}}).settings.appearanceMode,'auto');
+ const backup=appearanceMode=>({app:'kozakura-biyori',version:2,data:{...M.blank(),settings:{...M.blank().settings,appearanceMode}}});
+ assert.doesNotThrow(()=>M.validateBackup(backup('dark')));
+ assert.throws(()=>M.validateBackup(backup('sepia')),/画面モード/);
+});

@@ -1,6 +1,7 @@
 /* Selectable page backgrounds (settings.background). Hand-written: not part of the dark.css generator.
    Colored light backgrounds are pale tints of the bird illustration colors; dark ones are deep tints of the same hues.
-   The attribute rules also color the picker swatches, so they apply to any element, not only :root. */
+   The attribute rules also color the picker swatches, so they apply to any element, not only :root.
+   data-mode (set by mode.js) is the mode actually shown: the device setting or the in-app override. */
 [data-bg-light=default]{--bg-l:#fafbf2;--glow-l:#fffef4}
 [data-bg-light=green]{--bg-l:#e2eedc;--glow-l:#f4f9f0}
 [data-bg-light=yellow]{--bg-l:#f8efcc;--glow-l:#fdf9e8}
@@ -16,18 +17,18 @@
 [data-bg-dark=white]{--bg-d:#232323;--glow-d:#2c2c2c}
 [data-bg-dark=violet]{--bg-d:#25202f;--glow-d:#2f283a}
 
-@media screen and (prefers-color-scheme:light){
-  :root:not([data-bg-light=default])[data-bg-light],:root:not([data-bg-light=default])[data-bg-light] body{background:var(--bg-l)}
-  :root:not([data-bg-light=default])[data-bg-light] .app-shell{background:radial-gradient(ellipse at 70% 0,var(--glow-l) 0,transparent 35%),var(--bg-l)}
-  :root:not([data-bg-light=default])[data-bg-light] .bottom-nav{background:color-mix(in srgb,var(--bg-l) 96%,transparent)}
+@media screen{
+  :root[data-mode=light]:not([data-bg-light=default])[data-bg-light],:root[data-mode=light]:not([data-bg-light=default])[data-bg-light] body{background:var(--bg-l)}
+  :root[data-mode=light]:not([data-bg-light=default])[data-bg-light] .app-shell{background:radial-gradient(ellipse at 70% 0,var(--glow-l) 0,transparent 35%),var(--bg-l)}
+  :root[data-mode=light]:not([data-bg-light=default])[data-bg-light] .bottom-nav{background:color-mix(in srgb,var(--bg-l) 96%,transparent)}
 }
-@media screen and (prefers-color-scheme:dark){
-  :root:not([data-bg-dark=default])[data-bg-dark],:root:not([data-bg-dark=default])[data-bg-dark] body{background:var(--bg-d)}
-  :root:not([data-bg-dark=default])[data-bg-dark] .app-shell{background:radial-gradient(ellipse at 70% 0,var(--glow-d) 0,transparent 35%),var(--bg-d)}
-  :root:not([data-bg-dark=default])[data-bg-dark] .bottom-nav{background:color-mix(in srgb,var(--bg-d) 96%,transparent)}
+@media screen{
+  :root[data-mode=dark]:not([data-bg-dark=default])[data-bg-dark],:root[data-mode=dark]:not([data-bg-dark=default])[data-bg-dark] body{background:var(--bg-d)}
+  :root[data-mode=dark]:not([data-bg-dark=default])[data-bg-dark] .app-shell{background:radial-gradient(ellipse at 70% 0,var(--glow-d) 0,transparent 35%),var(--bg-d)}
+  :root[data-mode=dark]:not([data-bg-dark=default])[data-bg-dark] .bottom-nav{background:color-mix(in srgb,var(--bg-d) 96%,transparent)}
   /* Cards and tiles take a lifted shade of the chosen hue instead of the default warm dark. */
-  :root:not([data-bg-dark=default])[data-bg-dark] :is(.card,.health-cell,.action-tile,.menu-list,.latest-weight,.care-check,.bird-choice,.speech,.profile-wave,.notice){background:color-mix(in srgb,var(--bg-d),#fff 7%)}
-  :root:not([data-bg-dark=default])[data-bg-dark] :is(.card,.health-cell,.action-tile,.menu-list,.care-check){border-color:color-mix(in srgb,var(--bg-d),#fff 14%)}
+  :root[data-mode=dark]:not([data-bg-dark=default])[data-bg-dark] :is(.card,.health-cell,.action-tile,.menu-list,.latest-weight,.care-check,.bird-choice,.speech,.profile-wave,.notice){background:color-mix(in srgb,var(--bg-d),#fff 7%)}
+  :root[data-mode=dark]:not([data-bg-dark=default])[data-bg-dark] :is(.card,.health-cell,.action-tile,.menu-list,.care-check){border-color:color-mix(in srgb,var(--bg-d),#fff 14%)}
 }
 
 .bg-group{border:1px solid var(--line);border-radius:24px;padding:12px;margin:16px 0;min-width:0}
