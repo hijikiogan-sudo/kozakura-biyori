@@ -8,8 +8,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'www');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const shell = JSON.parse(sw.match(/const SHELL = (\[[^\]]*\]);/)[1].replaceAll("'", '"'));
-// notify.wav is only for iOS notifications, so it is not part of the web app shell.
-const files = [...shell.filter(Boolean), 'notify.wav'];
+const files = shell.filter(Boolean);
 
 rmSync(out, {recursive: true, force: true});
 for (const file of files) {

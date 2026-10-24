@@ -7,9 +7,10 @@
   // The app draws under the status bar (viewport-fit=cover); style.css keeps content clear of it under .native.
   document.documentElement.classList.add('native');
   const {LocalNotifications, Filesystem, Share} = C.Plugins;
-  const CARE_IDS = [200000, 210000];
-  // iOS plays no sound unless one is named; notify.wav is bundled by scripts/build_www.mjs.
-  const SOUND = 'notify.wav';
+  const CARE_IDS = [200000, 210000], TEST_ID = 104002;
+  // iOS plays no sound unless one is named. notify.caf sits at the top of the app bundle (ios/App/App);
+  // a copy inside public/ would be found first by the plugin and then not played by iOS.
+  const SOUND = 'notify.caf';
   const permission = display => display === 'granted' ? 'granted' : display === 'denied' ? 'denied' : 'prompt';
 
   window.KozabotaNativeNotifications = {
@@ -28,6 +29,11 @@
       if (stale.length) await LocalNotifications.cancel({notifications: stale});
       const upcoming = plan.filter(n => n.at > Date.now());
       if (upcoming.length) await LocalNotifications.schedule({notifications: upcoming.map(n => ({id: n.id, title: n.title, body: n.body, sound: SOUND, schedule: {at: new Date(n.at), allowWhileIdle: true}}))});
+    },
+    // Lets the user check sound and lock-screen settings without waiting for a real reminder.
+    async scheduleTestNotification(seconds = 5) {
+      await LocalNotifications.cancel({notifications: [{id: TEST_ID}]});
+      await LocalNotifications.schedule({notifications: [{id: TEST_ID, title: 'コザボタ日和', body: 'テスト通知です。音と表示を確認してください。', sound: SOUND, schedule: {at: new Date(Date.now() + seconds * 1000), allowWhileIdle: true}}]});
     },
     async pendingCareCount() {
       const {notifications} = await LocalNotifications.getPending();
