@@ -1,4 +1,7 @@
 """App Store readiness: policy pages, data deletion, theme and vet export. Synthetic data only."""
+import subprocess
+import sys
+from pathlib import Path
 import unittest
 from playwright.sync_api import expect
 import test_timer
@@ -46,6 +49,22 @@ class StoreReadinessTests(unittest.TestCase):
         self.assertEqual(state, ['', None, 0, 0, None])
         media = self.page.evaluate('''()=>new Promise(ok=>{const tx=db.transaction('media');const r=tx.objectStore('media').count();tx.oncomplete=()=>ok(r.result);})''')
         self.assertEqual(media, 0)
+
+    def test_dark_css_is_generated_from_current_style_css(self):
+        root = Path(__file__).resolve().parents[1]
+        before = (root / 'dark.css').read_text(encoding='utf-8')
+        subprocess.run([sys.executable, '-I', str(root / 'scripts/generate_dark_css.py')], check=True)
+        self.assertEqual((root / 'dark.css').read_text(encoding='utf-8'), before, 'Run scripts/generate_dark_css.py after changing style.css')
+
+    def test_dark_mode_follows_system_setting(self):
+        backgrounds = {}
+        for scheme in ('light', 'dark'):
+            self.page.emulate_media(color_scheme=scheme)
+            self.open('home')
+            backgrounds[scheme] = self.page.evaluate("getComputedStyle(document.querySelector('.app-shell')).backgroundColor")
+            self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
+        self.assertNotEqual(backgrounds['light'], backgrounds['dark'])
+        self.assertEqual(self.page.evaluate("getComputedStyle(document.documentElement).colorScheme"), 'dark')
 
 
 if __name__ == '__main__':
