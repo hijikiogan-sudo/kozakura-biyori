@@ -15,7 +15,7 @@ window.Capacitor={isNativePlatform:()=>true,Plugins:{
   LocalNotifications:{
     async checkPermissions(){return {display:N.permission};},
     async requestPermissions(){N.permission='granted';return {display:'granted'};},
-    async schedule({notifications}){for(const n of notifications){N.pending=N.pending.filter(p=>p.id!==n.id);N.pending.push({id:n.id,title:n.title,body:n.body,at:n.schedule.at.getTime()});}},
+    async schedule({notifications}){for(const n of notifications){N.pending=N.pending.filter(p=>p.id!==n.id);N.pending.push({id:n.id,title:n.title,body:n.body,sound:n.sound,at:n.schedule.at.getTime()});}},
     async cancel({notifications}){const ids=new Set(notifications.map(n=>n.id));N.pending=N.pending.filter(p=>!ids.has(p.id));},
     async getPending(){return {notifications:N.pending.map(({id,title,body})=>({id,title,body}))};}
   },
@@ -71,7 +71,20 @@ class IOSBridgeTests(unittest.TestCase):
         self.assertEqual(len(pending), 28)
         self.assertEqual([p['body'] for p in pending[:2]], ['ご飯替えの時間です（08:00）', 'ご飯替えの時間です（18:00）'])
         self.assertTrue(all(p['title'] == 'コザボタ日和' for p in pending))
+        # iOS notifications are silent unless a sound is named.
+        self.assertTrue(all(p['sound'] == 'notify.caf' for p in pending))
         expect(self.page.locator('#care-notification-status')).to_contain_text('28件')
+
+    def test_test_notification_fires_soon_with_sound(self):
+        self.page.evaluate("window.__native.permission='granted'")
+        self.open('reminders')
+        self.page.get_by_role('button', name='5秒後にテスト通知を送る').click()
+        expect(self.page.locator('#toast')).to_contain_text('5秒後にテスト通知を送ります')
+        test = [n for n in self.native()['pending'] if n['id'] == 104002]
+        self.assertEqual(len(test), 1)
+        self.assertEqual(test[0]['sound'], 'notify.caf')
+        now = self.page.evaluate('Date.now()')
+        self.assertAlmostEqual(test[0]['at'] - now, 5000, delta=1500)
 
     def test_recording_care_early_cancels_that_slot(self):
         self.save_food_reminder()
@@ -98,6 +111,7 @@ class IOSBridgeTests(unittest.TestCase):
         timer = [n for n in self.native()['pending'] if n['id'] == 104001]
         self.assertEqual(len(timer), 1)
         self.assertEqual(timer[0]['body'], '放鳥の設定時間になりました。愛鳥を確認してください。')
+        self.assertEqual(timer[0]['sound'], 'notify.caf')
         self.page.get_by_role('button', name='記録せず取り消す', exact=True).click()
         self.page.locator('#confirm-ok').click()
         expect(self.page.get_by_role('button', name='放鳥をはじめる', exact=True)).to_be_visible()
