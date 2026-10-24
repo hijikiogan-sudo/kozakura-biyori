@@ -8,6 +8,8 @@
   document.documentElement.classList.add('native');
   const {LocalNotifications, Filesystem, Share} = C.Plugins;
   const CARE_IDS = [200000, 210000];
+  // iOS plays no sound unless one is named; notify.wav is bundled by scripts/build_www.mjs.
+  const SOUND = 'notify.wav';
   const permission = display => display === 'granted' ? 'granted' : display === 'denied' ? 'denied' : 'prompt';
 
   window.KozabotaNativeNotifications = {
@@ -16,7 +18,7 @@
     async replaceTimerNotification({id, deadline, title, body}) {
       await LocalNotifications.cancel({notifications: [{id}]});
       if (deadline <= Date.now()) return;
-      await LocalNotifications.schedule({notifications: [{id, title, body, schedule: {at: new Date(deadline), allowWhileIdle: true}}]});
+      await LocalNotifications.schedule({notifications: [{id, title, body, sound: SOUND, schedule: {at: new Date(deadline), allowWhileIdle: true}}]});
     },
     async cancelTimerNotification({id}) { await LocalNotifications.cancel({notifications: [{id}]}); },
     // Replaces every pending care reminder with the given plan (see KozakuraModel.careNotificationPlan).
@@ -25,7 +27,7 @@
       const stale = notifications.filter(n => n.id >= CARE_IDS[0] && n.id < CARE_IDS[1]).map(n => ({id: n.id}));
       if (stale.length) await LocalNotifications.cancel({notifications: stale});
       const upcoming = plan.filter(n => n.at > Date.now());
-      if (upcoming.length) await LocalNotifications.schedule({notifications: upcoming.map(n => ({id: n.id, title: n.title, body: n.body, schedule: {at: new Date(n.at), allowWhileIdle: true}}))});
+      if (upcoming.length) await LocalNotifications.schedule({notifications: upcoming.map(n => ({id: n.id, title: n.title, body: n.body, sound: SOUND, schedule: {at: new Date(n.at), allowWhileIdle: true}}))});
     },
     async pendingCareCount() {
       const {notifications} = await LocalNotifications.getPending();
